@@ -1,0 +1,2300 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#04060b">
+<title>シーン・シーフ Scene Thief</title>
+<meta name="description" content="通りすぎる景色を、指先で、そっと盗む。ビルド不要・1枚のHTMLで動く、光と音のWebアプリ。">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="64x64" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Scene Thief">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<!-- SNS(X など)に貼ったときの表示。og:image / og:url は公開URLの絶対パスが必要です -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Scene Thief">
+<meta property="og:title" content="シーン・シーフ Scene Thief">
+<meta property="og:description" content="通りすぎる景色を、指先で、そっと盗む。">
+<meta property="og:url" content="https://<ユーザー名>.github.io/scene-thief/">
+<meta property="og:image" content="https://<ユーザー名>.github.io/scene-thief/ogp.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="シーン・シーフ Scene Thief のロゴ（黒背景）">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="シーン・シーフ Scene Thief">
+<meta name="twitter:description" content="通りすぎる景色を、指先で、そっと盗む。">
+<meta name="twitter:image" content="https://<ユーザー名>.github.io/scene-thief/ogp.png">
+<style>
+  html, body {
+    margin: 0; height: 100%;
+    background: #04060b;
+    overflow: hidden;
+    overscroll-behavior: none;
+    font-family: -apple-system, "Hiragino Sans", "Yu Gothic", sans-serif;
+  }
+  canvas {
+    position: fixed; inset: 0;
+    width: 100%; height: 100%;
+    display: block;
+    pointer-events: none;
+  }
+  #trail { z-index: 1; }
+  #fx    { z-index: 2; }
+  #orbit { z-index: 3; opacity: 0; transition: opacity 1.1s ease; }
+  body.orbit #orbit { opacity: 1; }
+  #play  { z-index: 3; opacity: 0; transition: opacity 1.1s ease; }
+  body.play #play { opacity: 1; }
+
+  /* すべての操作はこの透明な層で受ける */
+  #hit {
+    position: fixed; inset: 0; z-index: 4;
+    touch-action: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  #toast {
+    position: fixed; z-index: 5; left: 0; right: 0;
+    top: calc(env(safe-area-inset-top, 0px) + 28px);
+    text-align: center;
+    font-weight: 300; font-size: 13px; letter-spacing: .4em;
+    color: rgba(200, 220, 250, .65);
+    opacity: 0; transition: opacity .8s ease;
+    pointer-events: none;
+  }
+  #toast.on { opacity: 1; }
+
+  #help {
+    position: fixed; z-index: 5;
+    right: 14px; bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
+    width: 30px; height: 30px; padding: 0;
+    border-radius: 50%;
+    border: 1px solid rgba(180, 205, 245, .22);
+    background: transparent;
+    color: rgba(180, 205, 245, .42);
+    font-size: 14px; line-height: 1;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  #snd {
+    position: fixed; z-index: 5;
+    left: 14px; bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
+    width: 30px; height: 30px; padding: 0;
+    border-radius: 50%;
+    border: 1px solid rgba(180, 205, 245, .22);
+    background: transparent;
+    color: rgba(180, 205, 245, .42);
+    font-size: 14px; line-height: 1;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #vol {
+    position: fixed; z-index: 5;
+    left: 52px; bottom: calc(env(safe-area-inset-bottom, 0px) + 11px);
+    width: 104px; height: 36px;
+    touch-action: none;
+    cursor: pointer;
+    -webkit-user-select: none; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #vol::before {
+    content: ""; position: absolute; left: 8px; right: 8px; top: 17px;
+    height: 2px; border-radius: 1px;
+    background: rgba(180, 205, 245, .18);
+  }
+  #volFill {
+    position: absolute; left: 8px; top: 17px; width: 0;
+    height: 2px; border-radius: 1px;
+    background: rgba(180, 205, 245, .5);
+  }
+  #volKnob {
+    position: absolute; top: 11px; left: 8px;
+    width: 14px; height: 14px; margin-left: -7px;
+    border-radius: 50%;
+    background: rgba(200, 220, 250, .75);
+    box-shadow: 0 0 8px rgba(160, 190, 240, .4);
+  }
+  #scr {
+    position: fixed; z-index: 5;
+    left: 50%; margin-left: -15px;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
+    width: 30px; height: 30px; padding: 0;
+    border-radius: 50%;
+    border: 1px solid rgba(180, 205, 245, .22);
+    background: transparent;
+    color: rgba(180, 205, 245, .42);
+    font-size: 15px; line-height: 1;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #scr.open { color: rgba(220, 235, 255, .85); border-color: rgba(180, 205, 245, .5); }
+  #scrMenu {
+    position: fixed; z-index: 5;
+    left: 50%; transform: translate(-50%, 8px);
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 54px);
+    display: flex; flex-direction: column; gap: 4px;
+    padding: 6px;
+    border-radius: 16px;
+    background: rgba(16, 24, 44, .88);
+    border: 1px solid rgba(160, 190, 240, .28);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, .45);
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    opacity: 0; pointer-events: none;
+    transition: opacity .25s ease, transform .25s ease;
+  }
+  #scrMenu.on { opacity: 1; pointer-events: auto; transform: translate(-50%, 0); }
+  #scrMenu button {
+    padding: 10px 22px;
+    border: 0; border-radius: 11px;
+    background: transparent;
+    color: rgba(200, 220, 250, .7);
+    font-size: 13px; letter-spacing: .25em; white-space: nowrap;
+    font-family: inherit;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #scrMenu button.cur { background: rgba(120, 170, 255, .18); color: #fff; }
+  #snd.off { opacity: .55; }
+  #snd.off::after {
+    content: ""; position: absolute; left: 5px; right: 5px; top: 14px;
+    border-top: 1px solid currentColor;
+    transform: rotate(-40deg);
+  }
+
+  /* 初回ガイドの吹き出し */
+  #guide {
+    position: fixed; inset: 0; z-index: 6;
+    display: none;
+    align-items: flex-end; justify-content: center;
+    padding: 0 20px calc(env(safe-area-inset-bottom, 0px) + 11vh);
+    box-sizing: border-box;
+    pointer-events: none;
+    opacity: 0; transition: opacity .6s ease;
+  }
+  #guide.show { opacity: 1; }
+  .bubble {
+    position: relative;
+    pointer-events: auto;
+    box-sizing: border-box;
+    width: 100%; max-width: 310px;
+    padding: 18px 20px 14px;
+    border-radius: 20px;
+    background: rgba(16, 24, 44, .9);
+    border: 1px solid rgba(160, 190, 240, .28);
+    color: #dbe6fa;
+    font-size: 14px; line-height: 1.75;
+    box-shadow: 0 8px 40px rgba(0, 0, 0, .45);
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  }
+  .bubble::after {
+    content: ""; position: absolute;
+    left: 50%; bottom: -8px;
+    width: 14px; height: 14px; margin-left: -7px;
+    background: rgb(16, 24, 44);
+    border-right: 1px solid rgba(160, 190, 240, .28);
+    border-bottom: 1px solid rgba(160, 190, 240, .28);
+    transform: rotate(45deg);
+  }
+  #btxt { min-height: 6.6em; transition: opacity .18s ease; }
+  #btxt.swap { opacity: 0; }
+  #btxt b { display: block; margin-bottom: 4px; letter-spacing: .2em; font-weight: 500; color: #fff; }
+  .bfoot { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
+  #dots { font-size: 9px; letter-spacing: .5em; color: rgba(170, 200, 250, .6); }
+  #bnext {
+    padding: 7px 18px;
+    border-radius: 999px;
+    border: 1px solid rgba(160, 195, 255, .4);
+    background: rgba(120, 170, 255, .16);
+    color: #e6efff;
+    font-size: 12px; letter-spacing: .14em;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ===== タイトル画面 ===== */
+  body.titling #help, body.titling #snd, body.titling #scr, body.titling #back,
+  body.titling #vol, body.titling #scrMenu { visibility: hidden; }
+
+  /* プレイ画面からタイトルへ戻る ↩ */
+  #back {
+    position: fixed; z-index: 5;
+    left: calc(75% - 29.5px);                      /* ♺ と ? のちょうど中間 */
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
+    width: 30px; height: 30px; padding: 0;
+    border-radius: 50%;
+    border: 1px solid rgba(180, 205, 245, .22);
+    background: transparent;
+    color: rgba(180, 205, 245, .42);
+    font-size: 15px; line-height: 1;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  #title {
+    position: fixed; inset: 0; z-index: 7;
+    color: #dbe6fa;
+    transition: opacity .9s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #title.out { opacity: 0; pointer-events: none; }
+  #title .view {
+    position: absolute; inset: 0;
+    box-sizing: border-box;
+    opacity: 0; visibility: hidden; pointer-events: none;
+    transition: opacity .5s ease, visibility 0s linear .5s;
+  }
+  #title .view.on {
+    opacity: 1; visibility: visible; pointer-events: auto;
+    transition: opacity .5s ease;
+  }
+  #title button { font-family: inherit; -webkit-tap-highlight-color: transparent; }
+
+  /* ホーム：ロゴは上寄せの中央、ボタンは下 */
+  .home {
+    display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+    padding: calc(env(safe-area-inset-top, 0px) + 5vh) 20px calc(env(safe-area-inset-bottom, 0px) + 9vh);
+  }
+  .logo .sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
+  .logo { text-align: center; }
+  .logo-img {
+    display: block; margin: 0 auto;
+    width: min(88vw, 480px); max-height: 38vh; height: auto; object-fit: contain;
+    -webkit-user-select: none; user-select: none; -webkit-user-drag: none;
+    pointer-events: none;
+    filter: drop-shadow(0 0 16px rgba(120, 170, 255, .35));
+  }
+  .logo h1 {
+    margin: 0; padding-left: .22em;
+    font-weight: 300; font-size: clamp(30px, 9vw, 56px); letter-spacing: .22em;
+    color: #f2f7ff;
+    text-shadow: 0 0 28px rgba(120, 170, 255, .45), 0 0 6px rgba(4, 6, 11, .9);
+  }
+  .logo .sub {
+    margin: 16px 0 0; padding-left: .6em;
+    font-size: 13px; font-weight: 300; letter-spacing: .6em;
+    color: rgba(180, 205, 245, .72);
+    text-shadow: 0 0 6px rgba(4, 6, 11, .9);
+  }
+  .logo .tag {
+    margin: 0; padding-left: .2em;
+    font-size: 14px; font-weight: 300; line-height: 2.1; letter-spacing: .2em;
+    color: rgba(214, 226, 248, .82);
+    text-shadow: 0 0 6px rgba(4, 6, 11, .9);
+  }
+  .tmenu { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .tmenu button {
+    min-width: 210px; padding: 13px 28px;
+    border: 1px solid transparent; border-radius: 999px;
+    background: transparent;
+    color: rgba(210, 225, 252, .82);
+    font-size: 15px; letter-spacing: .24em;
+    text-shadow: 0 0 8px rgba(4, 6, 11, .9);
+    cursor: pointer;
+    transition: background .2s ease, color .2s ease;
+  }
+  .tmenu button.main {
+    border-color: rgba(160, 195, 255, .4);
+    background: rgba(120, 170, 255, .16);
+    color: #f2f7ff;
+  }
+  .tmenu button:active { background: rgba(120, 170, 255, .28); color: #fff; }
+
+  /* How to Use / Contact */
+  .page {
+    display: flex; flex-direction: column;
+    overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+    padding: 0 20px calc(env(safe-area-inset-bottom, 0px) + 36px);
+    background: rgba(4, 6, 11, .92);
+    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  }
+  .topbar {
+    position: sticky; top: 0; z-index: 1; flex: none;
+    margin: 0 -20px; padding: calc(env(safe-area-inset-top, 0px) + 10px) 20px 10px;
+    background: linear-gradient(rgba(4, 6, 11, .97), rgba(4, 6, 11, .75));
+  }
+  .back {
+    padding: 8px 14px 8px 4px;
+    border: 0; background: transparent;
+    color: rgba(190, 212, 250, .75);
+    font-size: 13px; letter-spacing: .22em;
+    cursor: pointer;
+  }
+  .page .inner { flex: none; width: 100%; max-width: 880px; margin: 0 auto; box-sizing: border-box; }
+  .page h2 {
+    margin: 14px 0 30px; text-align: center;
+    font-weight: 300; font-size: 17px; letter-spacing: .4em; padding-left: .4em;
+    color: #fff;
+  }
+  .cols { display: grid; grid-template-columns: 1fr; gap: 40px; }
+  .col h3 {
+    margin: 0 0 18px; padding-bottom: 10px;
+    font-weight: 400; font-size: 13px; letter-spacing: .32em;
+    color: rgba(160, 195, 255, .88);
+    border-bottom: 1px solid rgba(160, 190, 240, .22);
+  }
+  .poem p {
+    margin: 0 0 1.6em;
+    font-size: 14.5px; line-height: 2.2; letter-spacing: .1em; font-weight: 300;
+    color: #dbe6fa;
+  }
+  .scn { margin: 0 0 30px; }
+  .scn h4 { margin: 0 0 10px; font-size: 13px; font-weight: 500; letter-spacing: .22em; color: #fff; }
+  .scn .lead { margin: 0 0 12px; font-size: 13.5px; font-weight: 300; line-height: 1.95; letter-spacing: .06em; color: rgba(222, 232, 250, .92); }
+  .scn ul { margin: 0; padding: 0; list-style: none; }
+  .scn li { margin: 0 0 7px; font-size: 13px; line-height: 1.85; color: rgba(214, 226, 248, .82); }
+  .scn li b { font-weight: 500; color: #e6efff; }
+  .scn .snd { margin: 12px 0 0; font-size: 12.5px; line-height: 1.85; color: rgba(170, 200, 250, .78); }
+  @media (min-width: 760px) {
+    .cols { grid-template-columns: 1fr 1fr; gap: 64px; }
+  }
+
+  .contact .inner { margin: auto; text-align: center; padding-bottom: 12vh; }
+  .contact p { margin: 0; font-size: 14px; line-height: 2.1; letter-spacing: .12em; color: #dbe6fa; }
+  .contact .mail { margin-top: 10px; font-size: 16px; letter-spacing: .06em; word-break: break-all; }
+  .contact a {
+    color: #fff; text-decoration: underline;
+    text-decoration-color: rgba(160, 195, 255, .5); text-underline-offset: 6px;
+  }
+</style>
+</head>
+<body class="titling">
+<canvas id="trail"></canvas>
+<canvas id="fx"></canvas>
+<canvas id="orbit"></canvas>
+<canvas id="play"></canvas>
+<div id="hit"></div>
+<div id="toast"></div>
+<button id="help" aria-label="操作説明">?</button>
+<button id="back" aria-label="タイトルへ戻る">↩</button>
+<button id="snd" aria-label="音のオン／オフ">♪</button>
+<button id="scr" aria-label="画面を選ぶ" aria-haspopup="true" aria-expanded="false">♺</button>
+<div id="scrMenu" role="menu">
+  <button role="menuitem" data-mode="river">▷ 清流</button>
+  <button role="menuitem" data-mode="orbit">▷ 天図</button>
+  <button role="menuitem" data-mode="raika">▷ 雷火</button>
+  <button role="menuitem" data-mode="kokukei">▷ 刻景</button>
+</div>
+<div id="vol" role="slider" aria-label="音量" aria-valuemin="0" aria-valuemax="100"><i id="volFill"></i><b id="volKnob"></b></div>
+
+<div id="guide" role="dialog" aria-live="polite">
+  <div class="bubble">
+    <div id="btxt"></div>
+    <div class="bfoot"><span id="dots"></span><button id="bnext">NEXT →</button></div>
+  </div>
+</div>
+<div id="title" role="dialog" aria-label="シーン・シーフ">
+  <section class="view home on" id="vHome">
+    <div class="logo">
+      <h1 class="sr">シーン・シーフ Scene Thief</h1>
+      <img class="logo-img" src="logo.png" alt="" width="886" height="578" decoding="async">
+      <p class="tag">通りすぎる景色を、<br>指先で、そっと盗む。</p>
+    </div>
+    <nav class="tmenu">
+      <button class="main" data-go="start">▷Start</button>
+      <button data-go="how">▷How to Use</button>
+      <button data-go="contact">▷Contact</button>
+    </nav>
+  </section>
+
+  <section class="view page" id="vHow" aria-label="How to Use">
+    <div class="topbar"><button class="back" data-go="home">◁ Back</button></div>
+    <div class="inner">
+      <h2>How to Use</h2>
+      <div class="cols">
+        <div class="col poem">
+          <h3>テーマ</h3>
+          <p>景色は、見つめた瞬間にはもう、<br>通りすぎている。</p>
+          <p>光の流れも、星のめぐりも、<br>雷のひらめきも、時のうつろいも。</p>
+          <p>あなたの指は、その一瞬を、そっと盗む。<br>触れたところが岩になり、<br>星が灯り、炎が揺れ、針が時をたぐる。</p>
+          <p>盗んだ景色は、どこにも持ち帰れない。<br>ただ、指先と耳の奥に、<br>静かな余韻だけがのこる。</p>
+        </div>
+        <div class="col usage">
+          <h3>使い方</h3>
+
+          <section class="scn">
+            <h4>♺ 景色をうつる</h4>
+            <p class="lead">下の「♺」から、四つの景色へ。<br>清流、天図、雷火、刻景。</p>
+          </section>
+
+          <section class="scn">
+            <h4>▷清流</h4>
+            <p class="lead">夜の川を、光が音もなく流れてゆく。<br>指先にふれると、流れは少しだけ道をかえる。</p>
+            <ul>
+              <li><b>ふれる</b> … 指先が岩になり、光は身をかわして流れます。放せば、もとの流れへ。</li>
+              <li><b>くるくるなぞる</b> … 光が渦に巻き取られます。放すと解き放たれ、また流れ出します。</li>
+              <li><b>タップ</b> … 水面に波紋が広がり、通りすぎた光の色がゆるやかにかわります。</li>
+            </ul>
+            <p class="snd">♪ 弦をはじくような、澄んだ音。高いところに触れるほど高く、なぞるほど、爪弾くように連なります。</p>
+          </section>
+
+          <section class="scn">
+            <h4>▷天図</h4>
+            <p class="lead">星空に浮かぶ、惑星の軌道図。<br>そこへ、あなたの星をひとつ灯してみる。</p>
+            <ul>
+              <li><b>タップ</b> … 軌道図に星が灯ります。星は図とともに回り、惑星のように太陽のまわりをめぐります。</li>
+              <li><b>灯した星をもう一度タップ</b> … 星は静かに消えます。</li>
+              <li><b>スワイプ</b> … 軌道図を、どの向きにも回せます。速く、同じ向きに重ねるほど、回転は速まります。</li>
+              <li><b>ふれる</b> … 回転が止まります。スワイプをやめると、ゆっくり減速して止まります。</li>
+            </ul>
+            <p class="snd">♪ 鍵を打つような、深くやわらかな響き。回した分だけ音が生まれ、減速とともに間遠くなります。内側の星ほど、高く鳴ります。</p>
+          </section>
+
+          <section class="scn">
+            <h4>▷雷火</h4>
+            <p class="lead">黒い闇に、白い雷と炎。<br>走るものと、灯るもの。</p>
+            <ul>
+              <li><b>スワイプ</b> … 指の進む先へ、雷が走ります。速いほど、長く太い雷に。</li>
+              <li><b>タッチ</b> … 炎が灯ります。</li>
+              <li><b>長押し</b> … 炎が勢いを増し、打音がゆっくり溜めをつくります。しばらく押して放すと、ひと呼吸おいて締めの一打。炎は静かに、もとの大きさへ戻ります。</li>
+              <li><b>ダブルタッチ</b> … 近くの炎が、ふわりと消えます。</li>
+            </ul>
+            <p class="snd">♪ 雷には、歪んだ力強い弦の響き。画面の上でなぞるほど高く。炎には、低く腹にひびく打音。左右で音階が変わります。</p>
+          </section>
+
+          <section class="scn">
+            <h4>▷刻景</h4>
+            <p class="lead">文字盤のない、白い時計。<br>針をめぐらせると、星座と幾何学の背景が、過去から未来へ時をわたる。</p>
+            <ul>
+              <li><b>針を時計回りになぞりつづける</b> … 針が四分の三ほどめぐるたび、景色はひとつ先へ。星空から、春夏秋冬の星座をたどり、幾何学のかたちをした未来の星座へ。最後は、また星空に還ります。</li>
+              <li><b>反時計回りになぞる</b> … 同じ道を、過去へさかのぼります。</li>
+              <li><b>放したあと</b> … 針は、少し余韻で回ります。</li>
+            </ul>
+            <p class="snd">♪ 時計回りは、澄んだ金属の粒のような音。反時計回りは、ぴんと張った弦をはじく音。針の向きで音階が変わり、中心から遠くをなぞるほど、高く澄みます。</p>
+          </section>
+
+          <section class="scn">
+            <h4>音</h4>
+            <p class="lead">音は、触れた瞬間に、その場で生まれます。<br>どの音が重なっても濁らない音階なので、気のむくまま、鳴らしてください。</p>
+            <ul>
+              <li>最初にふれるまで、音は眠っています。iPhone はマナーモードだと鳴りません。</li>
+              <li>左下の「♪」でオン／オフ、となりのつまみで音量を。</li>
+            </ul>
+          </section>
+
+          <section class="scn">
+            <h4>? ・ ↩</h4>
+            <p class="lead">右下の「?」に、いつでも道しるべが灯ります。<br>「♺」と「?」のあいだの「↩」で、はじまりのタイトルへ。</p>
+          </section>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="view page contact" id="vContact" aria-label="Contact">
+    <div class="topbar"><button class="back" data-go="home">◁ Back</button></div>
+    <div class="inner">
+      <h2>Contact</h2>
+      <p>ご意見・感想・相談・不具合の報告は、Xのメッセージかリプライへ</p>
+      <p class="mail">→ <a href="https://x.com/tayutafu_ot" target="_blank" rel="noopener noreferrer">X（@tayutafu_ot）</a></p>
+    </div>
+  </section>
+</div>
+<noscript><p style="color:#9ab;text-align:center;padding-top:40vh;position:relative;z-index:8">JavaScript を有効にしてください</p></noscript>
+
+<script>
+(() => {
+  'use strict';
+
+  const $ = id => document.getElementById(id);
+  const trail = $('trail'), fx = $('fx'), orbit = $('orbit'), hit = $('hit');
+  const tctx = trail.getContext('2d');
+  const fctx = fx.getContext('2d');
+  const octx = orbit.getContext('2d');
+
+  const TAU = Math.PI * 2;
+  const BG = '4,6,11';
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  const angDiff = (a, b) => ((a - b + 540) % 360) - 180;
+  const smooth = (a, b, x) => { const k = clamp((x - a) / (b - a), 0, 1); return k * k * (3 - 2 * k); };
+
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const U0 = reduce ? 45 : 70;     // 川の基本の流速 (px/s)
+  const SW = 380;                  // 渦の最大接線速度 (px/s)
+  const STATIC_ROCKS = false;      // true にすると最初から岩が置かれる
+  const TRAIL_N = 55;              // 光の線を構成する点の数
+  const STEP = 4;                  // 点の間隔 (px) → 線の長さ ≒ 約220px
+
+  let W = 0, H = 0, DPR = 1;
+  let mode = 'river';              // 'river' | 'orbit' | 'raika' | 'kokukei'
+  let riverOn = true, orbitOn = false, playOn = false, offTimer = 0;
+
+  /* =====================================================
+     音（Web Audio で合成。音声ファイルは使いません）
+  ===================================================== */
+  const SCALE = [0, 2, 4, 7, 9];   // ペンタトニック（どの音が重なっても濁らない）
+  const noteFreq = i => {
+    i = Math.round(clamp(i, 0, 24));
+    return 440 * Math.pow(2, (48 + 12 * Math.floor(i / 5) + SCALE[i % 5] - 69) / 12);
+  };
+  const idxFromY = y => Math.round(4 + (1 - clamp(y / H, 0, 1)) * 14);   // 画面の上ほど高い音
+
+  let ac = null, bus = null, hbus = null, master = null, noiseBuf = null, voices = 0;
+  let soundOn = true;
+  let vol = 0.6;                   // 音量スライダーの位置 (0〜1)
+  const gainOf = v => 0.8 * v * v; // 体感に合わせて二乗カーブ
+  try { soundOn = localStorage.getItem('seiryu.sound') !== 'off'; } catch (_) {}
+  try { const v = parseFloat(localStorage.getItem('seiryu.vol')); if (isFinite(v)) vol = clamp(v, 0, 1); } catch (_) {}
+
+  function makeImpulse(sec) {
+    const len = Math.floor(ac.sampleRate * sec);
+    const buf = ac.createBuffer(2, len, ac.sampleRate);
+    for (let ch = 0; ch < 2; ch++) {
+      const d = buf.getChannelData(ch);
+      let y = 0;
+      for (let i = 0; i < len; i++) {
+        y += ((Math.random() * 2 - 1) - y) * 0.4;           // 少し暗い残響にする
+        d[i] = y * Math.pow(1 - i / len, 2.8);
+      }
+    }
+    return buf;
+  }
+
+  // 最初の画面タッチの中で呼ぶ（ブラウザの自動再生制限のため）
+  function ensureAudio() {
+    if (!soundOn) return;
+    if (!ac) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      try { ac = new AC(); } catch (_) { ac = null; return; }
+      master = ac.createGain();
+      master.gain.value = soundOn ? gainOf(vol) : 0;
+      const comp = ac.createDynamicsCompressor();
+      master.connect(comp); comp.connect(ac.destination);
+      bus = ac.createGain();
+      const soft = ac.createBiquadFilter();                // 高音をまろやかに丸める
+      soft.type = 'lowpass'; soft.frequency.value = 1700; soft.Q.value = 0.4;
+      bus.connect(soft);
+      const dry = ac.createGain(); dry.gain.value = 0.8;
+      const conv = ac.createConvolver(); conv.buffer = makeImpulse(2.8);
+      const wet = ac.createGain(); wet.gain.value = 0.55;
+      soft.connect(dry); dry.connect(master);
+      soft.connect(wet); wet.connect(conv); conv.connect(master);
+      // 弦をはじく音は、ピアノのような丸め処理をせず、明るく軽やかな経路へ通す
+      hbus = ac.createGain();
+      const hhp = ac.createBiquadFilter(); hhp.type = 'highpass'; hhp.frequency.value = 160;
+      const hlp = ac.createBiquadFilter(); hlp.type = 'lowpass'; hlp.frequency.value = 6500; hlp.Q.value = 0.3;
+      hbus.connect(hhp); hhp.connect(hlp);
+      hlp.connect(dry); hlp.connect(wet);
+      noiseBuf = ac.createBuffer(1, Math.floor(ac.sampleRate * 0.1), ac.sampleRate);
+      const nd = noiseBuf.getChannelData(0);
+      for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+    }
+    if (ac.state === 'suspended') ac.resume();
+  }
+
+  // 弦をはじく音：Karplus-Strong 法（短いノイズが弦を行き来しながら、高い響きから順に消えていく）
+  // 周波数ごとに一度だけ作って使い回す
+  const ksCache = new Map();
+  function pluckBuf(freq) {
+    const key = Math.round(freq * 4);
+    let hit = ksCache.get(key);
+    if (hit) return hit;
+    const sr = ac.sampleRate, len = Math.floor(sr * 2.4);
+    const N = Math.max(2, Math.floor(sr / freq - 0.5));
+    const fa = sr / (N + 0.5);                          // 実際に鳴る高さ（再生時に playbackRate で合わせる）
+    const g = Math.pow(0.001, 1 / (2.2 * fa));          // 約2.2秒で消える
+    const buf = ac.createBuffer(1, len, sr);
+    const y = buf.getChannelData(0);
+    // はじく前の弦の形：三角形（基音がはっきり鳴る）に、ほんの少しの揺らぎを足す
+    const kk = Math.max(1, Math.round((N + 1) * 0.18));
+    let p = 0, mean = 0, mx = 0;
+    for (let i = 0; i <= N; i++) {
+      p += ((Math.random() * 2 - 1) - p) * 0.5;
+      y[i] = (i < kk ? i / kk : (N + 1 - i) / Math.max(1, N + 1 - kk)) + 0.18 * p;
+      mean += y[i];
+    }
+    mean /= (N + 1);
+    for (let i = 0; i <= N; i++) { y[i] -= mean; mx = Math.max(mx, Math.abs(y[i])); }   // 直流成分を除いて、音量をそろえる
+    for (let i = 0; i <= N; i++) y[i] /= (mx || 1);
+    for (let i = N + 1; i < len; i++) y[i] = g * 0.5 * (y[i - N] + y[i - N - 1]);
+    const fade = Math.floor(sr * 0.25);
+    for (let i = 0; i < fade; i++) y[len - 1 - i] *= i / fade;
+    hit = { buf, fa };
+    ksCache.set(key, hit);
+    return hit;
+  }
+
+  // kind: 'harp'（清流：弦をはじく、明るくきらめく音）/ 'piano'（天図：鍵を打つ、丸くて深い、長く伸びる響き）
+  function tone(freq, vel, kind, delay, opts) {
+    if (!ac || !soundOn || voices >= 28) return;
+    opts = opts || {};
+    vel *= 0.8;                                            // 全体に控えめに
+    if (freq > 1100) vel *= 0.65;                          // 高い音はさらに控えめに
+    const harp = kind === 'harp';
+    const t0 = ac.currentTime + 0.01 + (delay || 0);
+    const dur = opts.dur || clamp((harp ? 2.0 : 4.2) * Math.pow(440 / freq, 0.3), 0.8, 5);
+
+    if (harp) {
+      const { buf, fa } = pluckBuf(freq);
+      const hd = Math.min(dur, 2.3);
+      const src = ac.createBufferSource();
+      src.buffer = buf; src.playbackRate.value = freq / fa;
+      const out = ac.createGain();
+      out.gain.setValueAtTime(vel * 0.6, t0);
+      out.gain.exponentialRampToValueAtTime(0.0003, t0 + hd);
+      src.connect(out); out.connect(hbus || bus);
+      voices++;
+      src.onended = () => { out.disconnect(); voices--; };
+      src.start(t0); src.stop(t0 + hd + 0.05);
+      return;
+    }
+
+    // 鍵を打つ音：倍音が豊かで、打った直後にすっと落ち着き、長く伸びる。わずかなうなりと、非整数倍音
+    const base = [[1, 1, 1], [2, 0.55, 0.8], [3, 0.32, 0.65], [4, 0.18, 0.5], [5, 0.09, 0.38], [6, 0.04, 0.3], [0.5, 0.3, 0.55]];
+    const specs = [];
+    base.slice(0, opts.light ? 3 : 7).filter(p => freq * p[0] < 9000).forEach(p => {
+      specs.push([p[0], p[1], p[2], 0]);
+      if (p[0] <= 3 && p[0] >= 1) specs.push([p[0], p[1] * 0.6, p[2], p[0] === 1 ? 4 : -4]);   // 鍵盤楽器特有のうなり
+    });
+    if (!specs.length) return;
+    const out = ac.createGain();
+    out.gain.value = vel;
+    out.connect(bus);
+    voices++;
+    let ended = 0;
+    for (const [ratio, amp, ds, det] of specs) {
+      const o = ac.createOscillator();
+      o.type = 'sine';
+      o.frequency.value = freq * ratio * Math.sqrt(1 + 0.0004 * ratio * ratio);
+      o.detune.value = det;
+      const g = ac.createGain();
+      const pd = dur * ds;                                 // 高い倍音ほど早く消える
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.linearRampToValueAtTime(amp * 0.22, t0 + 0.007);
+      g.gain.exponentialRampToValueAtTime(amp * 0.22 * 0.42, t0 + Math.min(0.5, pd * 0.12));   // 打った直後に、すっと落ち着く
+      g.gain.exponentialRampToValueAtTime(0.0003, t0 + pd);
+      o.connect(g); g.connect(out);
+      o.start(t0); o.stop(t0 + pd + 0.05);
+      o.onended = () => { g.disconnect(); if (++ended === specs.length) { out.disconnect(); voices--; } };
+    }
+    if (noiseBuf) {                                        // 鍵を打つ「コツ」という低めの打音
+      const n = ac.createBufferSource(); n.buffer = noiseBuf;
+      const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 0.7;
+      bp.frequency.value = Math.min(2200, freq * 2);
+      const ng = ac.createGain();
+      ng.gain.setValueAtTime(0.09, t0); ng.gain.exponentialRampToValueAtTime(0.001, t0 + 0.06);
+      n.connect(bp); bp.connect(ng); ng.connect(out);
+      n.start(t0); n.stop(t0 + 0.07);
+    }
+  }
+
+  // 軌道図を回している間、回った角度に合わせて音階を爪弾く（減速すると間隔が空いていく）
+  let rotAcc = 0, rotIdx = 11, lastSpin = 0;
+  function spinSound(ang, ax, ay, speed) {
+    if (!ac || !soundOn) return;
+    rotAcc += ang;
+    const now = performance.now();
+    if (rotAcc < 0.2 || now - lastSpin < 60) return;
+    rotAcc = 0; lastSpin = now;
+    const dir = Math.abs(ay) >= Math.abs(ax) ? -Math.sign(ay) : Math.sign(ax);   // 右・下へ回すと上行
+    rotIdx += (dir || 1) * (Math.random() < 0.25 ? 2 : 1);
+    if (rotIdx > 19) rotIdx -= 10;
+    if (rotIdx < 4) rotIdx += 10;
+    tone(noteFreq(rotIdx), clamp(0.1 + speed * 0.04, 0.1, 0.38), 'piano', 0, { dur: 1.8, light: true });
+  }
+
+  /* =====================================================
+     モード切替（♺メニュー）
+  ===================================================== */
+  const toastEl = $('toast');
+  let toastTimer = 0;
+  function showToast(text) {
+    toastEl.textContent = text;
+    toastEl.classList.add('on');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove('on'), 1700);
+  }
+
+  const MODE_NAMES = { river: '清流', orbit: '天図', raika: '雷火', kokukei: '刻景' };
+  function setMode(next) {
+    if (next === mode) return;
+    mode = next;
+    document.body.classList.toggle('orbit', mode === 'orbit');
+    document.body.classList.toggle('play', isPlay(mode));
+    riverOn = orbitOn = playOn = true;
+    clearTimeout(offTimer);
+    // 隠れたほうは、フェードが終わってから止める
+    offTimer = setTimeout(() => { riverOn = mode === 'river'; orbitOn = mode === 'orbit'; playOn = isPlay(mode); }, 1200);
+    pointers.clear();
+    touches.length = 0;
+    od.id = null; od.drag = false;
+    pl.clear(); lastDown = null;
+    if (isPlay(mode)) {
+      pkind = mode;
+      if (mode === 'raika') { flames.length = 0; fp.length = 0; bolts.length = 0; flash = 0; }
+      else kOmega = 0;
+    }
+    showToast(MODE_NAMES[mode]);
+    // 切り替えの2音は、移った先の楽器で鳴らす
+    if (mode === 'river') { tone(noteFreq(12), 0.28, 'harp'); tone(noteFreq(17), 0.24, 'harp', 0.13); }
+    else if (mode === 'orbit') { tone(noteFreq(8), 0.3, 'piano'); tone(noteFreq(13), 0.26, 'piano', 0.16); }
+    else if (mode === 'raika') { taiko(0.35, 49, false, true); guitar(rockFreq(3), 0.3); }
+    else { glock(noteFreq(14), 0.3); glock(noteFreq(19), 0.26); }
+  }
+
+  function handleTap(x, y) {
+    if (mode === 'river') {
+      addRipple(x, y);
+      const i = Math.round(6 + clamp(x / W, 0, 1) * 10);     // 横位置で音程が変わる
+      tone(noteFreq(i), 0.4, 'harp');
+      tone(noteFreq(i + 3), 0.22, 'harp', 0.12);
+    } else {
+      const target = findStarAt(x, y);
+      if (target) {                // 灯した星をもう一度タップすると消える
+        target.dying = ot;
+        tone(noteFreq(target.idx), 0.22, 'piano');
+        tone(noteFreq(target.idx - 3), 0.16, 'piano', 0.1);
+      } else {
+        lightStar(x, y);
+      }
+    }
+  }
+
+  // ♺ボタン：画面の選択メニュー
+  const scr = $('scr'), scrMenu = $('scrMenu');
+  const scrItems = scrMenu.querySelectorAll('button');
+  function syncMenu() { scrItems.forEach(b => b.classList.toggle('cur', b.dataset.mode === mode)); }
+  function menuOpen() { return scrMenu.classList.contains('on'); }
+  function setMenu(on) {
+    syncMenu();
+    scrMenu.classList.toggle('on', on);
+    scr.classList.toggle('open', on);
+    scr.setAttribute('aria-expanded', String(on));
+  }
+  scr.addEventListener('click', () => { ensureAudio(); setMenu(!menuOpen()); });
+  scrItems.forEach(b => b.addEventListener('click', () => {
+    ensureAudio();
+    setMenu(false);
+    setMode(b.dataset.mode);
+  }));
+
+  /* =====================================================
+     光の川
+  ===================================================== */
+  let particles = [];
+  let rocks = [];
+  const touches = [];              // 触れている/余韻中のタッチ
+  const pointers = new Map();
+  const ripples = [];
+  const rockList = [];
+  let t = 0;
+  let gh = 200, ghT = 200;         // 全体の色相 (現在 / 目標)
+
+  function makeRocks() {
+    rocks = [];
+    if (!STATIC_ROCKS) return;     // 触れた場所だけで流れが変わる
+    const m = Math.min(W, H);
+    const n = clamp(Math.round(W * H / 170000), 3, 6);
+    let tries = 0;
+    while (rocks.length < n && tries++ < 300) {
+      const a = clamp(m * rand(0.05, 0.09), 22, 70);
+      const x = rand(W * 0.2, W * 0.9), y = rand(H * 0.12, H * 0.88);
+      if (rocks.every(r => Math.hypot(r.x - x, r.y - y) > (r.a + a) * 2.6)) rocks.push({ x, y, a });
+    }
+  }
+
+  function spawn(p, anywhere) {
+    p.x = anywhere ? rand(0, W) : rand(-30, 0);
+    p.y = rand(0, H);
+    p.px = p.x; p.py = p.y;
+    p.vx = U0; p.vy = 0;
+    p.sp = rand(0.85, 1.15);
+    p.age = anywhere ? rand(0, 12) : 0;
+    p.life = rand(10, 20);
+    p.seed = Math.random();
+    p.hue = gh + rand(-14, 14);
+    p.hueT = p.hue;
+    p.light = rand(62, 78);
+    p.w = rand(0.9, 1.5);
+    if (!p.hx) { p.hx = new Float32Array(TRAIL_N); p.hy = new Float32Array(TRAIL_N); }
+    if (anywhere) {
+      // 最初から画面に線が行き渡るよう、後ろに直線の軌跡を敷いておく
+      for (let i = 0; i < TRAIL_N; i++) { p.hx[i] = p.x - (TRAIL_N - 1 - i) * STEP; p.hy[i] = p.y; }
+      p.n = TRAIL_N;
+    } else {
+      p.hx[TRAIL_N - 1] = p.x; p.hy[TRAIL_N - 1] = p.y;
+      p.n = 1;
+    }
+    return p;
+  }
+
+  function makeParticles() {
+    const n = clamp(Math.round(W * H / 3000), 220, 700);
+    particles = Array.from({ length: n }, () => spawn({}, true));
+  }
+
+  function resize() {
+    const oW = W, oH = H;
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth; H = window.innerHeight;
+    for (const c of [trail, fx, orbit, playC]) {
+      c.width = Math.round(W * DPR);
+      c.height = Math.round(H * DPR);
+    }
+    tctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    fctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    octx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    pctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    tctx.fillStyle = `rgb(${BG})`;
+    tctx.fillRect(0, 0, W, H);
+    resizeOrbit();
+    // アドレスバーの伸縮程度では作り直さない
+    if (!particles.length || Math.abs(W - oW) > 120 || Math.abs(H - oH) > 160) {
+      makeRocks();
+      makeParticles();
+    }
+  }
+
+  function makeTouch(e) {
+    const m = Math.min(W, H);
+    const now = performance.now();
+    return {
+      x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY,
+      t0: now, down: true, moved: 0,
+      hist: [{ x: e.clientX, y: e.clientY, t: now }],
+      rock: 0, rockMax: clamp(m * 0.08, 30, 58),
+      swirl: 0, sign: 1,
+      cx: e.clientX, cy: e.clientY, R0: 80,
+      tcx: e.clientX, tcy: e.clientY, tR: 40
+    };
+  }
+
+  function addRipple(x, y) {
+    ghT += 55;
+    const r = {
+      x, y, age: 0, life: 3.8,
+      speed: Math.max(W, H) * 0.28,
+      r: 0, amp: 1, band: 20,
+      hue: ((ghT % 360) + 360) % 360
+    };
+    ripples.push(r);
+    return r;
+  }
+
+  function riverDown(e) {
+    const T = makeTouch(e);
+    T.acc = 0; T.ln = performance.now();
+    pointers.set(e.pointerId, T);
+    touches.push(T);
+    tone(noteFreq(idxFromY(T.y)), 0.3, 'harp');              // 触れた高さの音
+  }
+  function riverMove(e) {
+    const T = pointers.get(e.pointerId);
+    if (!T) return;
+    const now = performance.now();
+    const step = Math.hypot(e.clientX - T.x, e.clientY - T.y);
+    T.x = e.clientX; T.y = e.clientY;
+    T.moved = Math.max(T.moved, Math.hypot(T.x - T.x0, T.y - T.y0));
+    T.hist.push({ x: T.x, y: T.y, t: now });
+    // なぞった距離に合わせてハープを爪弾く（速いほど強く）
+    T.acc += step;
+    if (T.acc > 56 && now - T.ln > 90) {
+      const speed = T.acc / Math.max(16, now - T.ln);
+      T.acc = 0; T.ln = now;
+      tone(noteFreq(idxFromY(T.y)), clamp(0.12 + speed * 0.1, 0.12, 0.38), 'harp');
+    }
+  }
+  function riverUp(e) {
+    const T = pointers.get(e.pointerId);
+    if (!T) return;
+    T.down = false;
+    pointers.delete(e.pointerId);
+    const now = performance.now();
+    if (e.type === 'pointerup' && now - T.t0 < 380 && T.moved < 16 && T.swirl < 0.3) {
+      handleTap(T.x, T.y);
+    }
+  }
+
+  function updateTouch(T, dt, now) {
+    // 触れた場所に「岩」が育つ。放すとゆっくり縮む
+    const wantRock = T.down && now - T.t0 > 90;
+    const rTarget = wantRock ? T.rockMax * (T.swirl > 0.5 ? 0.35 : 1) : 0;
+    T.rock += (rTarget - T.rock) * (1 - Math.exp(-dt * (rTarget > T.rock ? 9 : 3.2)));
+
+    // 円を描く動きの検出（直近の軌跡が重心まわりに何ラジアン回ったか）
+    let target = 0;
+    if (T.down) {
+      const h = T.hist;
+      while (h.length && now - h[0].t > 1800) h.shift();
+      if (h.length >= 8) {
+        let cx = 0, cy = 0;
+        for (const p of h) { cx += p.x; cy += p.y; }
+        cx /= h.length; cy /= h.length;
+        let sum = 0, rs = 0, n = 0, prev = null;
+        for (const p of h) {
+          const dx = p.x - cx, dy = p.y - cy;
+          const r = Math.hypot(dx, dy);
+          if (r < 8) continue;
+          const a = Math.atan2(dy, dx);
+          if (prev !== null) {
+            let d = a - prev;
+            if (d > Math.PI) d -= TAU; else if (d < -Math.PI) d += TAU;
+            sum += d;
+          }
+          prev = a; rs += r; n++;
+        }
+        if (n >= 6) {
+          rs /= n;
+          const thr = T.swirl > 0.4 ? 1.5 : 3.8;
+          if (Math.abs(sum) > thr && rs > 12 && rs < Math.min(W, H) * 0.42) {
+            target = 1;
+            T.sign = Math.sign(sum) || 1;
+            T.tcx = cx; T.tcy = cy; T.tR = rs;
+          }
+        }
+      }
+    }
+    if (target === 1) {
+      if (T.swirl < 0.02) { T.cx = T.tcx; T.cy = T.tcy; T.R0 = clamp(T.tR * 1.25 + 24, 70, 240); }
+      const kc = 1 - Math.exp(-dt * 10);
+      T.cx += (T.tcx - T.cx) * kc;
+      T.cy += (T.tcy - T.cy) * kc;
+      T.R0 += (clamp(T.tR * 1.25 + 24, 70, 240) - T.R0) * kc;
+    }
+    T.swirl += (target - T.swirl) * (1 - Math.exp(-dt * (target > T.swirl ? 7 : 2.2)));
+
+    // 巻き取りが始まった瞬間に、回す向きへのアルペジオ
+    if (T.swirl > 0.55 && !T.swSound) {
+      T.swSound = true;
+      const base = idxFromY(T.cy);
+      for (let k = 0; k < 5; k++) tone(noteFreq(base + (T.sign > 0 ? k : -k)), 0.26, 'harp', k * 0.09);
+    } else if (T.swirl < 0.15) {
+      T.swSound = false;
+    }
+  }
+
+  function update(dt, now) {
+    t += dt;
+    gh += angDiff(ghT, gh) * (1 - Math.exp(-dt * 0.6));
+
+    for (let i = touches.length - 1; i >= 0; i--) {
+      const T = touches[i];
+      updateTouch(T, dt, now);
+      if (!T.down && T.rock < 0.5 && T.swirl < 0.02) touches.splice(i, 1);
+    }
+    for (let i = ripples.length - 1; i >= 0; i--) {
+      const r = ripples[i];
+      r.age += dt;
+      r.r = r.speed * r.age;
+      r.amp = Math.pow(Math.max(0, 1 - r.age / r.life), 1.5);
+      if (r.age >= r.life) ripples.splice(i, 1);
+    }
+
+    // 岩の一覧（置かれた岩 + 触れている指）
+    rockList.length = 0;
+    for (const r of rocks) rockList.push(r);
+    for (const T of touches) if (T.rock > 1) rockList.push({ x: T.x, y: T.y, a: T.rock });
+    const swirls = touches.filter(T => T.swirl > 0.01);
+
+    const kRel = 1 - Math.exp(-dt * 4);
+    const kHue = 1 - Math.exp(-dt * 0.9);
+
+    for (const p of particles) {
+      p.age += dt;
+
+      // 川の基本の流れ
+      let tx = U0 * (1 + 0.35 * Math.sin(p.y * 0.005 + t * 0.12)) * p.sp;
+      let ty = 8 * Math.sin(p.x * 0.003 + p.y * 0.004 + t * 0.15);
+
+      // 渦（巻き取り）
+      let bs = 1, sx = 0, sy = 0;
+      for (const T of swirls) {
+        const dx = p.x - T.cx, dy = p.y - T.cy, R0 = T.R0, lim = R0 * 4;
+        if (dx > lim || dx < -lim || dy > lim || dy < -lim) continue;
+        const r2 = dx * dx + dy * dy;
+        if (r2 > lim * lim) continue;
+        const r = Math.sqrt(r2) + 0.001, q = r / R0;
+        const g = q * Math.exp(0.5 * (1 - q * q));
+        const vt = T.sign * SW * g * T.swirl;
+        const ss = smooth(0.35, 0.7, q);
+        sx += (-dy / r) * vt - (dx / r) * Math.abs(vt) * 0.22 * ss;
+        sy += (dx / r) * vt - (dy / r) * Math.abs(vt) * 0.22 * ss;
+        bs = Math.min(bs, 1 - 0.9 * T.swirl * Math.exp(-q * q * 0.4));
+      }
+
+      // 岩を避ける流れ（円柱まわりのポテンシャル流）
+      let rx = 0, ry = 0;
+      for (const k of rockList) {
+        const dx = p.x - k.x, dy = p.y - k.y;
+        const a2 = k.a * k.a, r2 = dx * dx + dy * dy;
+        if (r2 > 36 * a2 || r2 < 1e-6) continue;
+        const f = U0 * a2 / (r2 * r2);
+        rx += -f * (dx * dx - dy * dy);
+        ry += -f * 2 * dx * dy;
+      }
+
+      tx = (tx + rx) * bs + sx;
+      ty = (ty + ry) * bs + sy;
+
+      // 波紋：押し出し + 色の伝播
+      for (const rip of ripples) {
+        const dx = p.x - rip.x, dy = p.y - rip.y;
+        const d = Math.hypot(dx, dy) + 0.001;
+        const delta = d - rip.r;
+        if (Math.abs(delta) < rip.band * 2.5) {
+          const e = Math.exp(-(delta / rip.band) * (delta / rip.band));
+          const push = 90 * rip.amp * e;
+          tx += (dx / d) * push;
+          ty += (dy / d) * push;
+          if (Math.abs(delta) < rip.band) p.hueT = rip.hue + (p.seed * 24 - 12);
+        }
+      }
+
+      p.vx += (tx - p.vx) * kRel;
+      p.vy += (ty - p.vy) * kRel;
+      p.px = p.x; p.py = p.y;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+
+      // 岩の内側に入ったら表面へ押し戻す
+      for (const k of rockList) {
+        const dx = p.x - k.x, dy = p.y - k.y;
+        if (dx * dx + dy * dy < k.a * k.a) {
+          const r = Math.hypot(dx, dy);
+          const nx = r > 1e-3 ? dx / r : 1, ny = r > 1e-3 ? dy / r : 0;
+          p.x = k.x + nx * k.a * 1.02;
+          p.y = k.y + ny * k.a * 1.02;
+        }
+      }
+
+      p.hue += angDiff(p.hueT, p.hue) * kHue;
+
+      // 軌跡：一定距離ごとに点を記録（先頭は常に現在位置）
+      const N = TRAIL_N;
+      if (p.n < 2 || Math.hypot(p.x - p.hx[N - 2], p.y - p.hy[N - 2]) >= STEP) {
+        p.hx.copyWithin(0, 1); p.hy.copyWithin(0, 1);
+        if (p.n < N) p.n++;
+      }
+      p.hx[N - 1] = p.x; p.hy[N - 1] = p.y;
+
+      // 線の尾が画面から完全に出てから作り直す（途中で消えないように）
+      if (p.age > p.life || p.hx[N - p.n] > W + 10 ||
+          p.x < -300 || p.x > W + 300 || p.y < -200 || p.y > H + 200) {
+        spawn(p, false);
+      }
+    }
+  }
+
+  function draw() {
+    // 毎フレーム描き直し：長く均一な光の糸（両端がやわらかく消える）
+    tctx.globalCompositeOperation = 'source-over';
+    tctx.fillStyle = `rgb(${BG})`;
+    tctx.fillRect(0, 0, W, H);
+    tctx.globalCompositeOperation = 'lighter';
+    tctx.lineCap = 'butt';
+    tctx.lineJoin = 'round';
+    const N = TRAIL_N, CH = 6, per = (N - 1) / CH;
+    for (const p of particles) {
+      const lifeA = Math.sin(Math.PI * clamp(p.age / p.life, 0, 1)) * Math.min(1, p.age / 0.8);
+      if (lifeA < 0.03 || p.n < 3) continue;
+      const h = (((p.hue % 360) + 360) % 360).toFixed(0);
+      const lt = p.light.toFixed(0);
+      tctx.lineWidth = p.w;
+      const first = N - p.n;
+      for (let c = 0; c < CH; c++) {
+        const i0 = c * per, i1 = i0 + per;
+        if (i1 <= first) continue;
+        const s = Math.max(i0, first);
+        const u = (c + 0.5) / CH;
+        const a = lifeA * Math.sin(Math.PI * (0.12 + 0.76 * u)) * 0.62;
+        tctx.strokeStyle = `hsla(${h},85%,${lt}%,${a.toFixed(2)})`;
+        tctx.beginPath();
+        tctx.moveTo(p.hx[s], p.hy[s]);
+        for (let i = s + 1; i <= i1; i++) tctx.lineTo(p.hx[i], p.hy[i]);
+        tctx.stroke();
+      }
+    }
+
+    // 前面：岩・指・波紋
+    fctx.clearRect(0, 0, W, H);
+    for (const r of rocks) {
+      fctx.beginPath();
+      fctx.arc(r.x, r.y, r.a, 0, TAU);
+      fctx.fillStyle = 'rgba(8,11,18,0.9)';
+      fctx.fill();
+      fctx.strokeStyle = 'rgba(150,180,230,0.10)';
+      fctx.lineWidth = 1;
+      fctx.stroke();
+    }
+    for (const T of touches) {
+      if (T.rock > 1) {
+        const k = T.rock / T.rockMax;
+        fctx.beginPath();
+        fctx.arc(T.x, T.y, T.rock, 0, TAU);
+        fctx.fillStyle = `rgba(8,11,18,${(0.5 * k).toFixed(2)})`;
+        fctx.fill();
+        fctx.strokeStyle = `rgba(190,215,255,${(0.14 * k).toFixed(2)})`;
+        fctx.lineWidth = 1;
+        fctx.stroke();
+      }
+      if (T.swirl > 0.02) {
+        fctx.beginPath();
+        fctx.arc(T.cx, T.cy, T.R0 * 0.5, 0, TAU);
+        fctx.strokeStyle = `rgba(190,215,255,${(0.07 * T.swirl).toFixed(3)})`;
+        fctx.lineWidth = 1;
+        fctx.stroke();
+      }
+    }
+    for (const rip of ripples) {
+      const rings = [[1, 0.45], [0.86, 0.2], [0.72, 0.1]];
+      for (const [s, al] of rings) {
+        fctx.beginPath();
+        fctx.arc(rip.x, rip.y, Math.max(0, rip.r * s), 0, TAU);
+        fctx.strokeStyle = `hsla(${rip.hue.toFixed(0)},80%,72%,${(al * rip.amp).toFixed(3)})`;
+        fctx.lineWidth = s === 1 ? 1.4 : 1;
+        fctx.stroke();
+      }
+    }
+  }
+
+  /* =====================================================
+     星空の惑星軌道図
+  ===================================================== */
+  const OD = 4.2;                  // カメラ距離（遠近感の強さ）
+  const ROT = 0.0055;              // 1pxのスワイプで回る角度 (rad)
+  const MAX_SPIN = 14;             // 回転速度の上限 (rad/s)
+  const SEG = 96;                  // 軌道1周の分割数
+  const MAX_LIT = 240;             // 灯せる星の上限
+
+  let M = [1, 0, 0, 0, 1, 0, 0, 0, 1];   // 全体の向き（回転行列, 行優先）
+  const spin = { x: 0, y: 0 };            // 角速度ベクトル（画面座標, rad/s）
+  let ot = 0;                             // 軌道図の時間
+  let OR = 160;                           // 軌道図の半径 (px)
+  let bgGrad = null;
+  let bgStars = [];
+  const lit = [];                         // 灯した星（軌道面の座標で保持）
+  const od = { id: null, x: 0, y: 0, x0: 0, y0: 0, t0: 0, moved: 0, drag: false, samples: [], prev: [0, 0] };
+
+  const PL = [
+    { r: 0.12, c: [186, 178, 168], s: 2.2 },   // 水星
+    { r: 0.20, c: [238, 214, 168], s: 3.0 },   // 金星
+    { r: 0.29, c: [96, 168, 255],  s: 3.2 },   // 地球
+    { r: 0.40, c: [232, 112, 80],  s: 2.6 },   // 火星
+    { r: 0.58, c: [230, 190, 140], s: 6.2 },   // 木星
+    { r: 0.74, c: [236, 216, 166], s: 5.2, ring: true }, // 土星
+    { r: 0.88, c: [140, 230, 236], s: 4.0 },   // 天王星
+    { r: 1.00, c: [94, 124, 255],  s: 4.0 }    // 海王星
+  ];
+
+  function matMul(A, B) {
+    const R = new Array(9);
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) {
+      R[i * 3 + j] = A[i * 3] * B[j] + A[i * 3 + 1] * B[3 + j] + A[i * 3 + 2] * B[6 + j];
+    }
+    return R;
+  }
+  function rotMat(ax, ay, az, ang) {
+    const c = Math.cos(ang), s = Math.sin(ang), k = 1 - c;
+    return [
+      c + k * ax * ax,      k * ax * ay - s * az, k * ax * az + s * ay,
+      k * ax * ay + s * az, c + k * ay * ay,      k * ay * az - s * ax,
+      k * ax * az - s * ay, k * ay * az + s * ax, c + k * az * az
+    ];
+  }
+  function rotate(ax, ay, az, ang) {
+    if (Math.abs(ang) < 1e-9) return;
+    M = matMul(rotMat(ax, ay, az, ang), M);
+  }
+  function ortho() {
+    let a0 = M[0], a1 = M[1], a2 = M[2];
+    let l = Math.hypot(a0, a1, a2) || 1; a0 /= l; a1 /= l; a2 /= l;
+    let b0 = M[3], b1 = M[4], b2 = M[5];
+    const d = a0 * b0 + a1 * b1 + a2 * b2;
+    b0 -= d * a0; b1 -= d * a1; b2 -= d * a2;
+    l = Math.hypot(b0, b1, b2) || 1; b0 /= l; b1 /= l; b2 /= l;
+    M[0] = a0; M[1] = a1; M[2] = a2;
+    M[3] = b0; M[4] = b1; M[5] = b2;
+    M[6] = a1 * b2 - a2 * b1; M[7] = a2 * b0 - a0 * b2; M[8] = a0 * b1 - a1 * b0;
+  }
+
+  function initOrbit() {
+    M = rotMat(1, 0, 0, 1.0);      // 最初は斜め上から見下ろす
+    bgStars = Array.from({ length: 900 }, () => {
+      const z = rand(-1, 1), a = rand(0, TAU), q = Math.sqrt(1 - z * z);
+      return { x: q * Math.cos(a), y: q * Math.sin(a), z, m: Math.random(), ph: rand(0, TAU), sp: rand(0.6, 2.2) };
+    });
+    for (const p of PL) {
+      p.ph = rand(0, TAU);
+      p.w = 0.05 * Math.pow(p.r, -1.5);          // 内側ほど速く回る
+      p.e = rand(0.02, 0.07);
+      p.T = matMul(rotMat(1, 0, 0, rand(-0.06, 0.06)), rotMat(0, 1, 0, rand(-0.06, 0.06)));
+    }
+  }
+
+  function resizeOrbit() {
+    OR = Math.min(W * 0.40, H * 0.36);
+    const g = octx.createRadialGradient(W / 2, H * 0.45, 0, W / 2, H * 0.45, Math.max(W, H) * 0.75);
+    g.addColorStop(0, '#0b1226');
+    g.addColorStop(0.6, '#050914');
+    g.addColorStop(1, '#02030a');
+    bgGrad = g;
+  }
+
+  // 世界座標 → 画面座標（結果は sx_, sy_, sz_, ss_ に入る）
+  let sx_ = 0, sy_ = 0, sz_ = 0, ss_ = 1;
+  function proj(x, y, z) {
+    const X = M[0] * x + M[1] * y + M[2] * z;
+    const Y = M[3] * x + M[4] * y + M[5] * z;
+    const Z = M[6] * x + M[7] * y + M[8] * z;
+    const s = OD / (OD + Z);
+    sx_ = W / 2 + X * s * OR; sy_ = H / 2 + Y * s * OR; sz_ = Z; ss_ = s;
+  }
+  // 軌道上の点（軌道面の傾き込み）→ ox_, oy_, oz_
+  let ox_ = 0, oy_ = 0, oz_ = 0;
+  function orbPt(p, th) {
+    const x = p.r * Math.cos(th), y = p.r * (1 - p.e) * Math.sin(th);
+    ox_ = p.T[0] * x + p.T[1] * y;
+    oy_ = p.T[3] * x + p.T[4] * y;
+    oz_ = p.T[6] * x + p.T[7] * y;
+  }
+
+  // タップ位置を軌道面に落として星を灯す
+  function lightStar(sx, sy) {
+    const u = (sx - W / 2) / OR, v = (sy - H / 2) / OR;
+    let pcx, pcy, pcz;
+    const den = M[2] * u + M[5] * v + M[8] * OD;
+    let lam = Math.abs(M[8]) > 0.15 && Math.abs(den) > 1e-4 ? M[8] * OD / den : -1;
+    if (lam > 0 && lam < 6) {
+      pcx = lam * u; pcy = lam * v; pcz = OD * (lam - 1);
+    } else {
+      // 軌道面をほぼ真横から見ているとき：画面に平行な面に灯す
+      pcx = u; pcy = v; pcz = 0;
+    }
+    let x = M[0] * pcx + M[3] * pcy + M[6] * pcz;
+    let y = M[1] * pcx + M[4] * pcy + M[7] * pcz;
+    let z = M[2] * pcx + M[5] * pcy + M[8] * pcz;
+    const rr = Math.hypot(x, y, z);
+    if (rr > 1.06) { const k = 1.06 / rr; x *= k; y *= k; z *= k; }
+    const star = { x, y, z, born: ot, ph: rand(0, TAU), hue: rand(36, 58), size: rand(0.85, 1.25) };
+    star.idx = Math.round(7 + (1 - clamp(rr / 1.06, 0, 1)) * 10);   // 内側の星ほど高い音
+    lit.push(star);
+    if (lit.length > MAX_LIT) lit.shift();
+    tone(noteFreq(star.idx), 0.42, 'piano');
+    tone(noteFreq(star.idx + 5), 0.14, 'piano', 0.03);
+    return star;
+  }
+
+  // タップした位置にある、灯済みの星を探す
+  function findStarAt(sx, sy) {
+    let best = null, bd = 28;
+    for (const L of lit) {
+      if (L.dying != null) continue;
+      proj(L.x, L.y, L.z);
+      const d = Math.hypot(sx - sx_, sy - sy_) / Math.max(0.8, ss_);
+      if (d < bd) { bd = d; best = L; }
+    }
+    return best;
+  }
+
+  /* ---- スワイプ：どの向きにも回せる（トラックボール式） ---- */
+  function orbitDown(e) {
+    if (od.id !== null) return;
+    od.id = e.pointerId;
+    od.x = od.x0 = e.clientX; od.y = od.y0 = e.clientY;
+    od.t0 = performance.now();
+    od.moved = 0;
+    od.samples.length = 0;
+    od.prev = [spin.x, spin.y];    // 触れる直前の回転（連続スワイプの加速に使う）
+    spin.x = 0; spin.y = 0;        // 触れると止まる
+    od.lastT = od.t0;
+    od.drag = true;
+  }
+  function orbitMove(e) {
+    if (e.pointerId !== od.id) return;
+    const dx = e.clientX - od.x, dy = e.clientY - od.y;
+    od.x = e.clientX; od.y = e.clientY;
+    od.moved = Math.max(od.moved, Math.hypot(od.x - od.x0, od.y - od.y0));
+    const len = Math.hypot(dx, dy);
+    if (len < 0.01) return;
+    const ang = len * ROT;
+    const ax = dy / len, ay = -dx / len;   // 動きと直角の軸まわりに回す
+    rotate(ax, ay, 0, ang);
+    const now = performance.now();
+    spinSound(ang, ax, ay, ang / Math.max(0.008, (now - od.lastT) / 1000));
+    od.lastT = now;
+    od.samples.push({ t: now, rx: ax * ang, ry: ay * ang });
+    while (od.samples.length && now - od.samples[0].t > 110) od.samples.shift();
+  }
+  function orbitUp(e) {
+    if (e.pointerId !== od.id) return;
+    od.id = null; od.drag = false;
+    const now = performance.now();
+    const cancelled = e.type === 'pointercancel';
+    if (!cancelled && od.moved < 12 && now - od.t0 < 320) {
+      spin.x = 0; spin.y = 0;
+      handleTap(od.x, od.y);       // タップ → 星を灯す
+      return;
+    }
+    while (od.samples.length && now - od.samples[0].t > 110) od.samples.shift();
+    spin.x = 0; spin.y = 0;
+    if (cancelled || od.samples.length < 2) return;   // 指を止めてから離した → そのまま止まる
+    const first = od.samples[0], last = od.samples[od.samples.length - 1];
+    const win = Math.max(0.04, (last.t - first.t) / 1000 + 0.016);
+    let sx = 0, sy = 0;
+    for (const s of od.samples) { sx += s.rx; sy += s.ry; }
+    let wx = sx / win, wy = sy / win;
+    if (Math.hypot(wx, wy) < 0.4) return;
+    wx *= 1.15; wy *= 1.15;
+    // 同じ向きにすぐ続けてスワイプすると、前の勢いに上乗せされて加速する
+    if (od.prev[0] * wx + od.prev[1] * wy > 0) { wx += od.prev[0] * 0.85; wy += od.prev[1] * 0.85; }
+    const sp = Math.hypot(wx, wy);
+    if (sp > MAX_SPIN) { wx *= MAX_SPIN / sp; wy *= MAX_SPIN / sp; }
+    spin.x = wx; spin.y = wy;
+  }
+
+  function updateOrbit(dt) {
+    ot += dt;
+    if (!od.drag) {
+      // 離したあとはゆっくり減速して止まる
+      const sp = Math.hypot(spin.x, spin.y);
+      if (sp > 0) {
+        let ns = sp * Math.exp(-dt * 0.55);
+        if (ns < 0.015) ns = 0;
+        const ang = (sp + ns) / 2 * dt;
+        rotate(spin.x / sp, spin.y / sp, 0, ang);
+        spinSound(ang, spin.x / sp, spin.y / sp, (sp + ns) / 2);
+        const k = ns / sp;
+        spin.x *= k; spin.y *= k;
+      }
+    }
+    ortho();
+
+    // 灯した星も惑星と同じく、太陽のまわりを公転する（内側ほど速い）
+    for (let i = lit.length - 1; i >= 0; i--) {
+      const L = lit[i];
+      if (L.dying != null && ot - L.dying > 0.55) { lit.splice(i, 1); continue; }
+      const rr = Math.hypot(L.x, L.y);
+      const a = Math.min(0.9, 0.05 * Math.pow(Math.max(rr, 0.1), -1.5)) * dt;
+      const c = Math.cos(a), s = Math.sin(a);
+      const nx = L.x * c - L.y * s, ny = L.x * s + L.y * c;
+      L.x = nx; L.y = ny;
+    }
+  }
+
+  const xs = new Float32Array(SEG + 1), ys = new Float32Array(SEG + 1), zs = new Float32Array(SEG + 1);
+  const items = [];
+
+  function drawLit(c, L, x, y, s) {
+    const age = ot - L.born;
+    const g = Math.min(1, age / 0.8);
+    const grow = 1 - Math.pow(1 - g, 3);
+    const tw = 0.8 + 0.2 * Math.sin(ot * 2.1 + L.ph);
+    const f = L.dying != null ? clamp(1 - (ot - L.dying) / 0.55, 0, 1) : 1;   // 消えるときのフェード
+    const r = 5.5 * L.size * s * grow * tw * (0.5 + 0.5 * f);
+    if (r < 0.2 || f <= 0) return;
+    c.globalAlpha = f;
+    const h = L.hue.toFixed(0);
+    const gr = c.createRadialGradient(x, y, 0, x, y, r * 4.2);
+    gr.addColorStop(0, `hsla(${h},100%,78%,0.75)`);
+    gr.addColorStop(0.4, `hsla(${h},100%,65%,0.22)`);
+    gr.addColorStop(1, `hsla(${h},100%,60%,0)`);
+    c.fillStyle = gr;
+    c.beginPath(); c.arc(x, y, r * 4.2, 0, TAU); c.fill();
+    c.strokeStyle = `hsla(${h},100%,88%,${(0.6 * grow).toFixed(2)})`;
+    c.lineWidth = 1;
+    c.beginPath();
+    c.moveTo(x - r * 3.2, y); c.lineTo(x + r * 3.2, y);
+    c.moveTo(x, y - r * 3.2); c.lineTo(x, y + r * 3.2);
+    c.stroke();
+    c.fillStyle = 'rgba(255,250,235,0.95)';
+    c.beginPath(); c.arc(x, y, r * 0.4, 0, TAU); c.fill();
+    if (age < 0.9) {                // 灯った瞬間の輪
+      const k = age / 0.9, e = 1 - Math.pow(1 - k, 3);
+      c.strokeStyle = `hsla(${h},100%,80%,${(0.5 * (1 - k)).toFixed(2)})`;
+      c.beginPath(); c.arc(x, y, 6 + 46 * e * s, 0, TAU); c.stroke();
+    }
+    c.globalAlpha = 1;
+  }
+
+  function drawBody(c, col, x, y, r) {
+    const gr = c.createRadialGradient(x, y, 0, x, y, r * 4);
+    gr.addColorStop(0, `rgba(${col[0]},${col[1]},${col[2]},0.5)`);
+    gr.addColorStop(1, `rgba(${col[0]},${col[1]},${col[2]},0)`);
+    c.fillStyle = gr;
+    c.beginPath(); c.arc(x, y, r * 4, 0, TAU); c.fill();
+    c.fillStyle = `rgb(${col[0]},${col[1]},${col[2]})`;
+    c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill();
+  }
+
+  function drawOrbit() {
+    const c = octx;
+    c.globalCompositeOperation = 'source-over';
+    c.fillStyle = bgGrad;
+    c.fillRect(0, 0, W, H);
+    c.globalCompositeOperation = 'lighter';
+
+    // 背景の星空（軌道図と一緒に回る）
+    const Rs = Math.max(W, H) * 0.65;
+    for (const s of bgStars) {
+      const X = M[0] * s.x + M[1] * s.y + M[2] * s.z;
+      const Y = M[3] * s.x + M[4] * s.y + M[5] * s.z;
+      const px = W / 2 + X * Rs, py = H / 2 + Y * Rs;
+      if (px < -3 || px > W + 3 || py < -3 || py > H + 3) continue;
+      const tw = 0.55 + 0.45 * Math.sin(ot * s.sp + s.ph);
+      const a = (0.25 + 0.6 * s.m) * tw;
+      c.fillStyle = `rgba(215,228,255,${a.toFixed(2)})`;
+      if (s.m > 0.94) {
+        c.beginPath(); c.arc(px, py, 1.1 + s.m, 0, TAU); c.fill();
+      } else {
+        const r = 0.5 + s.m * s.m * 0.9;
+        c.fillRect(px - r, py - r, r * 2, r * 2);
+      }
+    }
+
+    // 軌道の輪（手前側は明るく、奥側は暗く）
+    c.lineWidth = 1;
+    c.lineJoin = 'round';
+    for (const p of PL) {
+      for (let k = 0; k <= SEG; k++) {
+        orbPt(p, k * TAU / SEG);
+        proj(ox_, oy_, oz_);
+        xs[k] = sx_; ys[k] = sy_; zs[k] = sz_;
+      }
+      c.beginPath();
+      for (let k = 0; k < SEG; k++) {
+        if (zs[k] + zs[k + 1] >= 0) { c.moveTo(xs[k], ys[k]); c.lineTo(xs[k + 1], ys[k + 1]); }
+      }
+      c.strokeStyle = 'rgba(150,180,235,0.13)';
+      c.stroke();
+      c.beginPath();
+      for (let k = 0; k < SEG; k++) {
+        if (zs[k] + zs[k + 1] < 0) { c.moveTo(xs[k], ys[k]); c.lineTo(xs[k + 1], ys[k + 1]); }
+      }
+      c.strokeStyle = 'rgba(190,215,255,0.30)';
+      c.stroke();
+    }
+
+    // 太陽・惑星・灯した星を、奥から手前の順に描く
+    items.length = 0;
+    proj(0, 0, 0);
+    items.push({ z: sz_, k: 0, x: sx_, y: sy_, s: ss_ });
+    for (const p of PL) {
+      orbPt(p, p.ph + p.w * ot);
+      proj(ox_, oy_, oz_);
+      items.push({ z: sz_, k: 1, p, x: sx_, y: sy_, s: ss_, wx: ox_, wy: oy_, wz: oz_ });
+    }
+    for (const L of lit) {
+      proj(L.x, L.y, L.z);
+      items.push({ z: sz_, k: 2, L, x: sx_, y: sy_, s: ss_ });
+    }
+    items.sort((a, b) => b.z - a.z);
+
+    for (const it of items) {
+      if (it.k === 0) {
+        const r = Math.max(7, OR * 0.05) * it.s * (1 + 0.03 * Math.sin(ot * 1.3));
+        const gr = c.createRadialGradient(it.x, it.y, 0, it.x, it.y, r * 5);
+        gr.addColorStop(0, 'rgba(255,236,170,0.95)');
+        gr.addColorStop(0.25, 'rgba(255,190,90,0.40)');
+        gr.addColorStop(1, 'rgba(255,150,60,0)');
+        c.fillStyle = gr;
+        c.beginPath(); c.arc(it.x, it.y, r * 5, 0, TAU); c.fill();
+        c.fillStyle = 'rgb(255,244,205)';
+        c.beginPath(); c.arc(it.x, it.y, r * 0.8, 0, TAU); c.fill();
+      } else if (it.k === 1) {
+        const p = it.p;
+        drawBody(c, p.c, it.x, it.y, p.s * it.s);
+        if (p.ring) {              // 土星の環
+          c.strokeStyle = 'rgba(236,216,166,0.55)';
+          c.lineWidth = 1;
+          c.beginPath();
+          const rr = 0.045, tl = 0.45, ct = Math.cos(tl), st = Math.sin(tl);
+          for (let k = 0; k <= 24; k++) {
+            const a = k * TAU / 24;
+            proj(it.wx + rr * Math.cos(a), it.wy + rr * Math.sin(a) * ct, it.wz + rr * Math.sin(a) * st);
+            if (k === 0) c.moveTo(sx_, sy_); else c.lineTo(sx_, sy_);
+          }
+          c.stroke();
+        }
+      } else {
+        drawLit(c, it.L, it.x, it.y, it.s);
+      }
+    }
+  }
+
+  /* =====================================================
+     入力（モードごとに振り分ける）
+  ===================================================== */
+  hit.addEventListener('pointerdown', e => {
+    try { hit.setPointerCapture(e.pointerId); } catch (_) {}
+    e.preventDefault();
+    if (menuOpen()) { setMenu(false); return; }   // メニューが開いている間の最初のタッチは、閉じるだけ
+    ensureAudio();
+    if (isPlay(mode)) playDown(e); else if (mode === 'river') riverDown(e); else orbitDown(e);
+  });
+  hit.addEventListener('pointermove', e => {
+    e.preventDefault();
+    if (isPlay(mode)) playMove(e); else if (mode === 'river') riverMove(e); else orbitMove(e);
+  });
+  const onEnd = e => {
+    if (isPlay(mode)) { playUp(e); return; }
+    if (!pointers.has(e.pointerId) && od.id !== e.pointerId) return;
+    ensureAudio();
+    if (mode === 'river') riverUp(e); else orbitUp(e);
+  };
+  hit.addEventListener('touchend', ensureAudio, { passive: true });   // iOS対策
+  hit.addEventListener('pointerup', onEnd);
+  hit.addEventListener('pointercancel', onEnd);
+  window.addEventListener('contextmenu', e => e.preventDefault());
+  window.addEventListener('resize', resize);
+
+  /* =====================================================
+     初回ガイド（吹き出し）
+  ===================================================== */
+  const guide = $('guide'), btxt = $('btxt'), bnext = $('bnext'), dots = $('dots'), help = $('help');
+  const SEEN_KEY = 'seiryu.guide.v1';
+  const STEPS = [
+    { t: '<b>▷清流</b>ふれた指が岩になり、光は身をかわして流れます。<br>なぞれば渦に、タップすれば波紋に。<br>弦をはじくような澄んだ音が、寄りそいます。', b: 'NEXT →' },
+    { t: '<b>景色をうつる</b>下の「♺」から、四つの景色へ。<br>清流、天図、雷火、刻景。<br>気のむくまま、盗みにゆくように。', b: 'NEXT →' },
+    { t: '<b>▷天図</b>タップで星が灯り、もう一度ふれると、静かに消えます。<br>スワイプで星図がめぐり、回すほど軌道は速まります。<br>鍵を打つような深い響きが、宙にのこります。', b: 'NEXT →' },
+    { t: '<b>▷雷火</b>なぞれば雷が走り、ふれれば炎が灯ります。<br>押さえつづけて、放したあとの余韻まで。<br><b>▷刻景</b>針をめぐらせば、背景が時をわたります。', b: 'START' }
+  ];
+  let gi = 0, guideTimer = 0;
+
+  function renderStep(first) {
+    const apply = () => {
+      btxt.innerHTML = STEPS[gi].t;
+      bnext.textContent = STEPS[gi].b;
+      dots.textContent = STEPS.map((_, i) => (i === gi ? '●' : '○')).join(' ');
+      btxt.classList.remove('swap');
+    };
+    if (first) { apply(); return; }
+    btxt.classList.add('swap');
+    setTimeout(apply, 180);
+  }
+  function openGuide() {
+    gi = 0;
+    renderStep(true);
+    clearTimeout(guideTimer);
+    guide.style.display = 'flex';
+    help.style.display = 'none';
+    requestAnimationFrame(() => guide.classList.add('show'));
+  }
+  function closeGuide() {
+    guide.classList.remove('show');
+    help.style.display = '';
+    try { localStorage.setItem(SEEN_KEY, '1'); } catch (_) {}
+    clearTimeout(guideTimer);
+    guideTimer = setTimeout(() => { guide.style.display = 'none'; }, 650);
+  }
+  bnext.addEventListener('click', () => {
+    if (gi < STEPS.length - 1) { gi++; renderStep(false); } else closeGuide();
+  });
+  help.addEventListener('click', openGuide);
+
+  // 音量スライダー（左右になぞって変える）
+  const volEl = $('vol'), volFill = $('volFill'), volKnob = $('volKnob');
+  const VOL_W = 104, VOL_PAD = 8;
+  function applyVol() {
+    const x = VOL_PAD + vol * (VOL_W - VOL_PAD * 2);
+    volKnob.style.left = x + 'px';
+    volFill.style.width = (x - VOL_PAD) + 'px';
+    volEl.setAttribute('aria-valuenow', String(Math.round(vol * 100)));
+    volEl.style.opacity = soundOn ? '' : '0.45';
+    if (ac && master) master.gain.setTargetAtTime(soundOn ? gainOf(vol) : 0, ac.currentTime, 0.03);
+  }
+  let volDrag = false;
+  function volFromEvent(e) {
+    const r = volEl.getBoundingClientRect();
+    vol = clamp((e.clientX - r.left - VOL_PAD) / (VOL_W - VOL_PAD * 2), 0, 1);
+    if (vol > 0 && !soundOn) {     // ミュート中に動かしたら音を戻す
+      soundOn = true;
+      try { localStorage.setItem('seiryu.sound', 'on'); } catch (_) {}
+      syncSnd();
+      ensureAudio();
+    }
+    applyVol();
+  }
+  volEl.addEventListener('pointerdown', e => {
+    volDrag = true;
+    try { volEl.setPointerCapture(e.pointerId); } catch (_) {}
+    e.preventDefault();
+    ensureAudio();
+    volFromEvent(e);
+  });
+  volEl.addEventListener('pointermove', e => { if (volDrag) { e.preventDefault(); volFromEvent(e); } });
+  const volEnd = () => {
+    if (!volDrag) return;
+    volDrag = false;
+    try { localStorage.setItem('seiryu.vol', String(vol)); } catch (_) {}
+    tone(noteFreq(10), 0.3, 'harp');                     // 離したとき、音量を確かめる一音
+  };
+  volEl.addEventListener('pointerup', volEnd);
+  volEl.addEventListener('pointercancel', volEnd);
+
+  // 音のオン／オフ
+  const snd = $('snd');
+  const syncSnd = () => snd.classList.toggle('off', !soundOn);
+  syncSnd();
+  applyVol();
+  snd.addEventListener('click', () => {
+    soundOn = !soundOn;
+    try { localStorage.setItem('seiryu.sound', soundOn ? 'on' : 'off'); } catch (_) {}
+    syncSnd();
+    if (soundOn) ensureAudio();
+    applyVol();
+  });
+
+  /* =====================================================
+     プレイ画面：▷雷火 / ▷刻景
+  ===================================================== */
+  const playC = $('play'), pctx = playC.getContext('2d');
+  const isPlay = m => m === 'raika' || m === 'kokukei';
+  const mod = (a, n) => ((a % n) + n) % n;
+  const pl = new Map();            // プレイ画面で触れている指
+  let pkind = 'raika';             // 最後に開いたプレイ画面
+  let pT = 0;
+
+  // ---- 音：エレキギター（雷）：ロックなパワーコード ----
+  let distCurve = null;
+  const ROCK = [0, 3, 5, 7, 10];                         // マイナーペンタトニック
+  const rockFreq = k => 440 * Math.pow(2, (40 + 12 * Math.floor(k / 5) + ROCK[k % 5] - 69) / 12);   // E2から
+  function guitar(freq, vel) {
+    if (!ac || !soundOn || voices >= 28) return;
+    if (!distCurve) {
+      distCurve = new Float32Array(1024);
+      for (let i = 0; i < 1024; i++) { const x = i / 511.5 - 1; distCurve[i] = Math.tanh(x * 14 + 0.35) - Math.tanh(0.35); }
+    }
+    const t0 = ac.currentTime + 0.01, dur = 1.7;
+    const sum = ac.createGain(); sum.gain.value = 0.55;
+    const oscs = [];
+    for (const [r, dt] of [[1, 0], [1.4983, 4], [2, -5]]) {   // ルート + 5度 + オクターブ = パワーコード
+      const o = ac.createOscillator(); o.type = 'sawtooth';
+      o.frequency.setValueAtTime(freq * r * 1.03, t0);
+      o.frequency.exponentialRampToValueAtTime(freq * r, t0 + 0.05);
+      o.detune.value = dt;
+      o.connect(sum); oscs.push(o);
+    }
+    const lfo = ac.createOscillator(), lg = ac.createGain();   // 遅れて入るビブラート
+    lfo.frequency.value = 5.8;
+    lg.gain.setValueAtTime(0, t0); lg.gain.linearRampToValueAtTime(freq * 0.009, t0 + 0.55);
+    lfo.connect(lg); for (const o of oscs) lg.connect(o.frequency);
+    const ws = ac.createWaveShaper(); ws.curve = distCurve; ws.oversample = '2x';   // 強いディストーション
+    const hp = ac.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 110;
+    const mid = ac.createBiquadFilter(); mid.type = 'peaking'; mid.frequency.value = 1600; mid.Q.value = 1; mid.gain.value = 7;
+    const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 4800;   // アンプのキャビネット風
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.linearRampToValueAtTime(vel * 0.4, t0 + 0.004);
+    g.gain.exponentialRampToValueAtTime(vel * 0.2, t0 + 0.25);
+    g.gain.exponentialRampToValueAtTime(0.0003, t0 + dur);
+    sum.connect(ws); ws.connect(hp); hp.connect(mid); mid.connect(lp); lp.connect(g); g.connect(master);
+    voices++;
+    oscs[0].onended = () => { g.disconnect(); voices--; };
+    for (const o of oscs.concat([lfo])) { o.start(t0); o.stop(t0 + dur + 0.05); }
+    if (noiseBuf) {                                                 // ピックのアタック音
+      const n = ac.createBufferSource(); n.buffer = noiseBuf;
+      const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 3200; bp.Q.value = 1;
+      const ng = ac.createGain();
+      ng.gain.setValueAtTime(vel * 0.25, t0);
+      ng.gain.exponentialRampToValueAtTime(0.001, t0 + 0.03);
+      n.connect(bp); bp.connect(ng); ng.connect(master);
+      n.start(t0); n.stop(t0 + 0.05);
+    }
+  }
+
+  // ---- 音：和太鼓（炎）：胴を叩く重低音 ----
+  let satCurve = null;
+  function taiko(vel, f0, soft, roll) {
+    if (!ac || !soundOn || voices >= 28) return;
+    if (!satCurve) {
+      satCurve = new Float32Array(1024);
+      for (let i = 0; i < 1024; i++) satCurve[i] = Math.tanh((i / 511.5 - 1) * 2.2);
+    }
+    const t0 = ac.currentTime + 0.005, dur = (roll ? 0.55 : (soft ? 2.2 : 1.9)) * clamp(80 / f0, 0.5, 1);   // 高い太鼓ほど余韻は短い
+    const sum = ac.createGain();
+    const sat = ac.createWaveShaper(); sat.curve = satCurve;     // 倍音を足して、小さなスピーカーでも低音が聞こえるように
+    const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900; lp.Q.value = 0.5;
+    sum.connect(sat); sat.connect(lp); lp.connect(master);
+    const o = ac.createOscillator(); o.type = 'sine';
+    o.frequency.setValueAtTime(f0 * 3.2, t0);
+    o.frequency.exponentialRampToValueAtTime(f0, t0 + 0.09);
+    o.frequency.exponentialRampToValueAtTime(f0 * 0.62, t0 + dur);
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.linearRampToValueAtTime(vel * 1.5, t0 + 0.008);
+    g.gain.exponentialRampToValueAtTime(vel * 0.5, t0 + 0.3 * Math.min(1, dur / 1.5));
+    g.gain.exponentialRampToValueAtTime(0.0003, t0 + dur);
+    o.connect(g); g.connect(sum);
+    const o2 = ac.createOscillator(); o2.type = 'sine';
+    o2.frequency.setValueAtTime(f0 * 4.5, t0);
+    o2.frequency.exponentialRampToValueAtTime(f0 * 2, t0 + 0.12);
+    const g2 = ac.createGain();
+    g2.gain.setValueAtTime(vel * 0.7, t0);
+    g2.gain.exponentialRampToValueAtTime(0.0003, t0 + 0.7);
+    o2.connect(g2); g2.connect(sum);
+    voices++;
+    o.onended = () => { sum.disconnect(); voices--; };
+    o.start(t0); o2.start(t0); o.stop(t0 + dur + 0.05); o2.stop(t0 + 0.75);
+    if (noiseBuf) {
+      const n = ac.createBufferSource(); n.buffer = noiseBuf;
+      const bp = ac.createBiquadFilter(); bp.type = 'lowpass'; bp.frequency.value = 600;
+      const ng = ac.createGain();
+      ng.gain.setValueAtTime(vel * (soft ? 0.25 : 0.7), t0);
+      ng.gain.exponentialRampToValueAtTime(0.001, t0 + 0.09);
+      n.connect(bp); bp.connect(ng); ng.connect(master);
+      n.start(t0); n.stop(t0 + 0.1);
+    }
+  }
+
+  // 太鼓の高さは低いほうに統一。触れた場所の左右で音階が変わる
+  const PENT6 = [0, 2, 4, 7, 9, 12];
+  function drumHit(x, y, vel, roll) {
+    const k = clamp(Math.floor(x / W * 6), 0, 5);
+    taiko(vel, 46 * Math.pow(2, PENT6[k] / 12), false, roll);
+  }
+
+  // ---- 音：鉄琴（時計回り）----
+  function glock(freq, vel) {
+    if (!ac || !soundOn || voices >= 28) return;
+    const t0 = ac.currentTime + 0.01, dur = 1.8;
+    const out = ac.createGain(); out.gain.value = vel * 0.55; out.connect(master);
+    voices++;
+    let ended = 0;
+    const parts = [[1, 1, 1], [2.76, 0.3, 0.4], [5.4, 0.1, 0.22], [8.9, 0.04, 0.12]].filter(p => freq * p[0] < 9000);
+    for (const [ratio, amp, ds] of parts) {
+      const o = ac.createOscillator(); o.type = 'sine'; o.frequency.value = freq * ratio;
+      const g = ac.createGain(), pd = dur * ds;
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.linearRampToValueAtTime(amp * 0.3, t0 + 0.003);
+      g.gain.exponentialRampToValueAtTime(0.0003, t0 + pd);
+      o.connect(g); g.connect(out);
+      o.start(t0); o.stop(t0 + pd + 0.05);
+      o.onended = () => { g.disconnect(); if (++ended === parts.length) { out.disconnect(); voices--; } };
+    }
+  }
+
+  // ---- 音：三味線（反時計回り）----
+  function shamisen(freq, vel) {
+    if (!ac || !soundOn || voices >= 28) return;
+    const t0 = ac.currentTime + 0.005, dur = 1.0;
+    const o = ac.createOscillator(); o.type = 'sawtooth';
+    o.frequency.setValueAtTime(freq * 1.06, t0);
+    o.frequency.exponentialRampToValueAtTime(freq, t0 + 0.035);     // 撥で弾いた直後の音程の揺れ
+    const o2 = ac.createOscillator(); o2.type = 'triangle'; o2.frequency.value = freq * 2.003;
+    const g2 = ac.createGain(); g2.gain.value = 0.35;
+    const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 2.5;
+    lp.frequency.setValueAtTime(Math.min(5000, freq * 9), t0);
+    lp.frequency.exponentialRampToValueAtTime(Math.max(300, freq * 1.6), t0 + 0.5);
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.linearRampToValueAtTime(vel * 0.3, t0 + 0.003);
+    g.gain.exponentialRampToValueAtTime(0.0003, t0 + dur);
+    o.connect(lp); o2.connect(g2); g2.connect(lp); lp.connect(g); g.connect(master);
+    voices++;
+    o.onended = () => { g.disconnect(); voices--; };
+    o.start(t0); o2.start(t0); o.stop(t0 + dur + 0.05); o2.stop(t0 + dur + 0.05);
+    if (noiseBuf) {                                                  // 撥が皮に当たる「ベン」
+      const n = ac.createBufferSource(); n.buffer = noiseBuf;
+      const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 2200; bp.Q.value = 1.2;
+      const ng = ac.createGain();
+      ng.gain.setValueAtTime(vel * 0.3, t0);
+      ng.gain.exponentialRampToValueAtTime(0.001, t0 + 0.04);
+      n.connect(bp); bp.connect(ng); ng.connect(master);
+      n.start(t0); n.stop(t0 + 0.06);
+    }
+  }
+
+  /* ---------------- 雷火 ---------------- */
+  const flames = [], fp = [], bolts = [];
+  let flash = 0, lastDown = null, sprite = null;
+  (function makeSprite() {
+    const c = document.createElement('canvas'); c.width = c.height = 64;
+    const g = c.getContext('2d');
+    const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+    gr.addColorStop(0, 'rgba(255,255,255,1)');
+    gr.addColorStop(0.35, 'rgba(255,255,255,.45)');
+    gr.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+    sprite = c;
+  })();
+
+  function makeFlame(x, y) {
+    if (flames.length >= 10) { const o = flames.find(f => !f.dying); if (o) o.dying = true; }
+    const f = { x, y, power: 1, fade: 1, dying: false, em: 0, age: 0, ph: rand(0, TAU), held: false };
+    flames.push(f);
+    return f;
+  }
+  function spawnFire(f) {
+    if (fp.length > 700) return;
+    const pw = f.power, soft = f.dying ? 0.55 : 1;
+    fp.push({
+      x: f.x + rand(-7, 7), y: f.y + rand(-3, 3),
+      vx: rand(-16, 16), vy: -rand(70, 125) * (0.7 + 0.45 * pw) * soft,
+      age: 0, life: rand(0.5, 0.95) * (0.8 + 0.18 * pw),
+      size: rand(10, 17) * (0.75 + 0.3 * pw) * (f.dying ? 1.15 : 1),
+      ph: rand(0, TAU), ember: false
+    });
+  }
+  function spawnEmber(f) {
+    if (fp.length > 700) return;
+    fp.push({
+      x: f.x + rand(-10, 10), y: f.y - rand(0, 20),
+      vx: rand(-40, 40), vy: -rand(140, 240),
+      age: 0, life: rand(1, 1.7), size: rand(2.5, 4.5), ph: rand(0, TAU), ember: true
+    });
+  }
+
+  function jag(x0, y0, x1, y1, rough) {            // 中点変位で稲妻のギザギザを作る
+    let pts = [{ x: x0, y: y0 }, { x: x1, y: y1 }];
+    let off = Math.hypot(x1 - x0, y1 - y0) * rough;
+    for (let k = 0; k < 5 && off > 1.2; k++) {
+      const np = [pts[0]];
+      for (let i = 1; i < pts.length; i++) {
+        const a = pts[i - 1], b = pts[i];
+        const dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy) || 1;
+        const o = rand(-1, 1) * off;
+        np.push({ x: (a.x + b.x) / 2 - dy / L * o, y: (a.y + b.y) / 2 + dx / L * o });
+        np.push(b);
+      }
+      pts = np; off *= 0.52;
+    }
+    return pts;
+  }
+  function spawnBolt(x0, y0, x1, y1, w) {
+    const len = Math.hypot(x1 - x0, y1 - y0);
+    const pts = jag(x0, y0, x1, y1, 0.22);
+    const br = [];
+    const nb = Math.floor(rand(1, 4));
+    for (let i = 0; i < nb; i++) {
+      const p = pts[Math.floor(rand(2, Math.max(3, pts.length - 2)))];
+      const ang = Math.atan2(y1 - y0, x1 - x0) + rand(-1, 1) * 0.9;
+      const L = rand(0.15, 0.4) * len + 16;
+      br.push(jag(p.x, p.y, p.x + Math.cos(ang) * L, p.y + Math.sin(ang) * L, 0.25));
+    }
+    bolts.push({ pts, br, t: 0, life: rand(0.28, 0.46), w });
+    if (bolts.length > 24) bolts.shift();
+    flash = Math.min(1, flash + 0.45);
+  }
+
+  function updateRaika(dt) {
+    for (const f of flames) f.held = false;
+    for (const r of pl.values()) {
+      if (r.dbl || r.swipe || !r.flame) continue;
+      r.flame.held = true; r.hold += dt; r.beat -= dt;
+      if (r.beat <= 0) {                           // 長押しの間、太鼓がロールのように連打される
+        // 溜め：最初はゆったり、ゆっくりと詰まっていく。人の手で打てる速さ（約9打/秒）を上限にする
+        r.beat = 0.12 + 0.58 * Math.exp(-r.hold / 2.6);
+        drumHit(r.hx, r.hy, 0.2 + 0.36 * (1 - Math.exp(-r.hold / 3)), true);   // 音もじわりと育つ
+      }
+    }
+    for (let i = flames.length - 1; i >= 0; i--) {
+      const f = flames[i];
+      f.age += dt;
+      if (f.dying) f.fade -= dt / 1.6;
+      else if (f.held) { f.power = Math.min(3, f.power + 0.8 * dt); f.linger = false; }
+      else f.power += (1 - f.power) * (1 - Math.exp(-(f.linger ? 0.3 : 0.6) * dt));   // 残心：長押しのあとは、よりゆっくり静まる
+      if (f.fade <= 0) { flames.splice(i, 1); continue; }
+      const k = Math.min(1, f.age / 0.25) * f.fade;
+      f.em += (45 + 70 * f.power) * k * dt;
+      let guard = 8;
+      while (f.em >= 1 && guard-- > 0) { f.em -= 1; spawnFire(f); }
+      if (!f.dying && f.power > 1.7 && Math.random() < dt * (f.power - 1.4) * 5) spawnEmber(f);
+    }
+    for (let i = fp.length - 1; i >= 0; i--) {
+      const p = fp[i];
+      p.age += dt;
+      if (p.age >= p.life) { fp[i] = fp[fp.length - 1]; fp.pop(); continue; }
+      p.vx += Math.sin(pT * 7 + p.ph) * 50 * dt * (p.ember ? 0.2 : 1);
+      p.x += p.vx * dt; p.y += p.vy * dt;
+    }
+    for (let i = bolts.length - 1; i >= 0; i--) {
+      bolts[i].t += dt;
+      if (bolts[i].t >= bolts[i].life) bolts.splice(i, 1);
+    }
+    flash *= Math.exp(-9 * dt);
+  }
+
+  function strokePts(c, pts) {
+    c.beginPath(); c.moveTo(pts[0].x, pts[0].y);
+    for (let i = 1; i < pts.length; i++) c.lineTo(pts[i].x, pts[i].y);
+    c.stroke();
+  }
+  function drawRaika(now) {
+    const c = pctx;
+    c.globalCompositeOperation = 'source-over';
+    c.globalAlpha = 1;
+    c.fillStyle = '#000'; c.fillRect(0, 0, W, H);
+    c.globalCompositeOperation = 'lighter';
+    if (flash > 0.01) { c.fillStyle = 'rgba(255,255,255,' + (flash * 0.16).toFixed(3) + ')'; c.fillRect(0, 0, W, H); }
+    for (const f of flames) {                      // 炎の根元の光
+      const r = (24 + 20 * f.power) * (0.92 + 0.08 * Math.sin(now * 0.03 + f.ph));
+      c.globalAlpha = 0.6 * Math.min(1, f.age / 0.25) * f.fade;
+      c.drawImage(sprite, f.x - r, f.y - r * 1.1, r * 2, r * 2);
+    }
+    for (const p of fp) {
+      const k = p.age / p.life;
+      c.globalAlpha = p.ember ? (1 - k) * 0.9 : Math.pow(1 - k, 1.3) * 0.5;
+      const s = p.ember ? p.size : p.size * (0.4 + 0.6 * (1 - k));
+      c.drawImage(sprite, p.x - s, p.y - s, s * 2, s * 2);
+    }
+    c.strokeStyle = '#fff'; c.lineCap = 'round'; c.lineJoin = 'round';
+    for (const b of bolts) {
+      const k = b.t / b.life;
+      const a = Math.pow(1 - k, 1.4) * (Math.random() < 0.25 ? 0.55 : 1);
+      const all = [[b.pts, 1]].concat(b.br.map(p => [p, 0.55]));
+      for (const [lw, la] of [[5, 0.16], [2, 0.4], [0.9, 1]]) {
+        c.globalAlpha = a * la;
+        for (const [pts, wm] of all) { c.lineWidth = b.w * lw * wm; strokePts(c, pts); }
+      }
+    }
+    c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
+  }
+
+  /* ---------------- 刻景 ---------------- */
+  const KNAMES = ['星空', '北斗七星', 'さそり', '夏の大三角', 'カシオペヤ', 'ペガスス', 'オリオン', '正二十面体', '黄金螺旋'];  // 春→夏→秋→冬（過去）→ 幾何学（未来）
+  const KN = KNAMES.length;        // 神のあとは星空に戻る（ループ）
+  const TURNS = 0.75;              // 1つ進むのに必要な針の周回数
+  let kRot = 0, kOmega = 0, kStage = 0, kSec = -1, kRad = 0, kLast = 0;
+  let stars = null;
+  (function makeStars() {
+    let s = 12345;
+    const r = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
+    stars = [];
+    for (let i = 0; i < 140; i++) stars.push({ x: r(), y: r(), r: r() * 1.4 + 0.4, ph: r() * TAU, big: r() > 0.93, to: [] });
+    stars.forEach((a, i) => {                       // 近い星同士を細い線でつなぐ（星座）
+      const d = stars.map((b, j) => [Math.hypot((a.x - b.x) * 0.55, a.y - b.y), j]).filter(p => p[1] !== i).sort((p, q) => p[0] - q[0]);
+      for (let k = 0; k < 2; k++) if (d[k][0] < 0.14) a.to.push(d[k][1]);
+    });
+  })();
+
+  // 針が指している向き（時計の位置）で音階が決まる。遠くを触るほど1オクターブ高い
+  function applyRot(d) {
+    kRot += d;
+    const sec = Math.floor(mod(kRot, TAU) / TAU * 10) % 10;
+    if (kSec < 0) { kSec = sec; return; }
+    if (sec === kSec) return;
+    kSec = sec;
+    const now = performance.now();
+    if (now - kLast < 50) return;
+    kLast = now;
+    const far = kRad > Math.min(W, H) * 0.36 ? 5 : 0;
+    const vel = clamp(0.28 + Math.abs(kOmega) * 0.04, 0.28, 0.6);
+    if (d > 0) glock(noteFreq(10 + sec + far), vel);
+    else shamisen(noteFreq(3 + sec + far), vel);
+  }
+  /* ---- 火花：タッチで弾け、長押しでほとばしり、指に沿ってついてくる ---- */
+  const ks = [];
+  function spark(x, y, ang, spread, spd) {
+    if (ks.length > 520) ks.shift();
+    const a = ang + (Math.random() - 0.5) * spread * 2, v = spd * (0.35 + 0.65 * Math.random());
+    ks.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, age: 0, life: 0.35 + Math.random() * 0.55, w: 0.9 + Math.random() * 1.3 });
+  }
+  function sparkBurst(x, y, n, spd) { for (let i = 0; i < n; i++) spark(x, y, 0, Math.PI, spd * (0.5 + Math.random() * 0.8)); }
+  function emitHold(dt) {
+    for (const r of pl.values()) {
+      r.hold += dt;
+      if (r.hold < 0.12) continue;
+      const g = Math.min(1, r.hold / 2.5);
+      r.acc += dt * (28 + 110 * g);
+      while (r.acc >= 1) { r.acc -= 1; spark(r.x, r.y, 0, Math.PI, 150 + 300 * g * Math.random() + (Math.random() < 0.08 ? 220 : 0)); }
+    }
+  }
+  function updateSparks(dt) {
+    const dr = Math.exp(-2.4 * dt);
+    for (let i = ks.length - 1; i >= 0; i--) {
+      const p = ks[i];
+      p.age += dt;
+      if (p.age >= p.life) { ks.splice(i, 1); continue; }
+      p.vx *= dr; p.vy = p.vy * dr + 330 * dt;
+      p.x += p.vx * dt; p.y += p.vy * dt;
+    }
+  }
+  function drawSparks(c) {
+    if (!ks.length) return;
+    c.save(); c.globalCompositeOperation = 'lighter'; c.lineCap = 'round'; c.shadowBlur = 0;
+    for (const p of ks) {
+      const k = p.age / p.life, a = Math.pow(1 - k, 1.2);
+      c.strokeStyle = 'rgba(255,' + (200 + 55 * (1 - k) | 0) + ',' + (110 + 140 * (1 - k) | 0) + ',' + a.toFixed(3) + ')';
+      c.lineWidth = p.w * (1 - k * 0.5);
+      c.beginPath(); c.moveTo(p.x - p.vx * 0.04, p.y - p.vy * 0.04); c.lineTo(p.x, p.y); c.stroke();
+      if (k < 0.5) { c.globalAlpha = a * 0.7; c.drawImage(sprite, p.x - 6, p.y - 6, 12, 12); c.globalAlpha = 1; }
+    }
+    c.restore();
+  }
+  function updateKokukei(dt) {
+    emitHold(dt); updateSparks(dt);
+    if (!pl.size && Math.abs(kOmega) > 0.04) {
+      applyRot(kOmega * dt);
+      kOmega *= Math.exp(-3.2 * dt);
+    } else if (!pl.size) kOmega = 0;
+  }
+
+  function drawStars(c, a, tt, calm) {
+    c.fillStyle = '#fff'; c.strokeStyle = '#fff'; c.lineWidth = 1;
+    for (const s of stars) {
+      const tw = 0.55 + 0.45 * Math.sin(tt * 1.3 + s.ph);
+      c.globalAlpha = a * tw;
+      const x = s.x * W, y = s.y * H;
+      c.beginPath(); c.arc(x, y, s.r, 0, TAU); c.fill();
+      if (!calm && s.to.length) {
+        c.globalAlpha = a * 0.16; c.beginPath();
+        for (const j of s.to) { c.moveTo(x, y); c.lineTo(stars[j].x * W, stars[j].y * H); }
+        c.stroke(); c.globalAlpha = a * tw;
+      }
+      if (!calm && s.big) { c.beginPath(); c.moveTo(x - 7, y); c.lineTo(x + 7, y); c.moveTo(x, y - 7); c.lineTo(x, y + 7); c.stroke(); }
+    }
+  }
+  /* 星座データ：p=[x,y,明るさ]  l=実線の折れ線（点の番号）  d=点線 */
+  const CON = [
+    null,
+    { p: [[-.95,.15,1.3],[-.62,-.08,1.4],[-.3,-.14,1.5],[.02,-.02,1],[.1,.4,1.2],[.64,.46,1.3],[.7,-.02,1.6],[.8,-.7,1.6]], l: [[0,1,2,3,4,5,6,3]], d: [[5,6,7]] },
+    { p: [[.5,-.7,1],[.34,-.5,1.3],[.5,-.4,1],[.12,-.2,2],[.02,.08,1.1],[-.05,.34,1.1],[-.18,.55,1.2],[-.42,.66,1.2],[-.66,.56,1.2],[-.74,.32,1.1],[-.62,.14,1.5],[-.54,.24,1]], l: [[0,1,3],[2,1],[3,4,5,6,7,8,9,10,11]], d: [] },
+    { p: [[.45,-.62,2],[-.7,-.3,1.6],[.12,.7,1.6],[.34,-.38,.9],[.56,-.4,.9],[.52,-.2,.9],[.32,-.18,.9]], l: [[0,3,4,0],[3,6,5,4]], d: [[0,1,2,0]] },
+    { p: [[-.9,-.05,1.2],[-.45,.4,1.4],[0,-.02,1.5],[.45,.4,1.3],[.9,-.1,1.2],[.05,-.72,1.6]], l: [[0,1,2,3,4]], d: [[2,5]] },
+    { p: [[-.4,-.3,1.3],[-.35,.3,1.4],[.3,.35,1.2],[.35,-.25,1.5],[.58,-.5,1.2],[.82,-.7,1.3],[-.9,.62,1.4],[-.65,.5,.9]], l: [[0,1,2,3,0],[3,4,5],[1,7,6]], d: [] },
+    { p: [[-.3,-.7,2],[.3,-.65,1.6],[0,-.85,1],[-.14,.02,1.5],[0,-.01,1.6],[.14,-.04,1.4],[-.32,.7,1.4],[.34,.66,2]], l: [[0,3],[1,5],[3,4,5],[3,6],[5,7],[0,2,1],[0,1]], d: [[6,7]] }
+  ];
+  function conste(c, k, tt) {
+    const g = CON[k], A = c.globalAlpha, P = g.p;
+    c.save(); c.shadowBlur = 0; c.lineWidth = 0.007;
+    c.globalAlpha = A * 0.7;
+    for (const ch of g.l) { c.beginPath(); ch.forEach((j, n) => { if (n) c.lineTo(P[j][0], P[j][1]); else c.moveTo(P[j][0], P[j][1]); }); c.stroke(); }
+    c.globalAlpha = A * 0.4; c.setLineDash([0.02, 0.035]);
+    for (const ch of g.d) { c.beginPath(); ch.forEach((j, n) => { if (n) c.lineTo(P[j][0], P[j][1]); else c.moveTo(P[j][0], P[j][1]); }); c.stroke(); }
+    c.setLineDash([]);
+    P.forEach((q, n) => starDot(c, q[0], q[1], 0.018 + q[2] * 0.012, A * (0.8 + 0.2 * Math.sin(tt * 1.6 + n * 2.1)), q[2] >= 1.4));
+    c.restore();
+  }
+  function starDot(c, x, y, r, a, cross) {
+    c.save(); c.globalAlpha = a; c.shadowColor = 'rgba(255,255,255,.9)'; c.shadowBlur = 8;
+    c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill(); c.shadowBlur = 0;
+    if (cross) { c.lineWidth = 0.005; c.beginPath(); c.moveTo(x - r * 3, y); c.lineTo(x + r * 3, y); c.moveTo(x, y - r * 3); c.lineTo(x, y + r * 3); c.stroke(); }
+    c.restore();
+  }
+  /* 未来の星座：回る正二十面体（頂点が星）／黄金角に並ぶ螺旋の星 */
+  const PHI = (1 + Math.sqrt(5)) / 2, IV = [], IE = [];
+  (function () {
+    for (const s1 of [-1, 1]) for (const s2 of [-1, 1]) IV.push([0, s1, s2 * PHI], [s1, s2 * PHI, 0], [s2 * PHI, 0, s1]);
+    for (let i = 0; i < 12; i++) for (let j = i + 1; j < 12; j++) if (Math.abs(Math.hypot(IV[i][0] - IV[j][0], IV[i][1] - IV[j][1], IV[i][2] - IV[j][2]) - 2) < 0.01) IE.push([i, j]);
+  })();
+  function ico(c, R, ry, rx, a) {
+    const P = IV.map(v => {
+      let x = v[0] * Math.cos(ry) + v[2] * Math.sin(ry), z = -v[0] * Math.sin(ry) + v[2] * Math.cos(ry), y = v[1];
+      const y2 = y * Math.cos(rx) - z * Math.sin(rx), z2 = y * Math.sin(rx) + z * Math.cos(rx);
+      const k = R / 1.9 / (1 - z2 * 0.06); return [x * k, y2 * k, z2];
+    });
+    c.save(); c.shadowBlur = 0; c.lineWidth = 0.006; c.globalAlpha = a * 0.55; c.beginPath();
+    for (const [i, j] of IE) { c.moveTo(P[i][0], P[i][1]); c.lineTo(P[j][0], P[j][1]); }
+    c.stroke(); c.restore();
+    P.forEach(q => starDot(c, q[0], q[1], 0.03 + q[2] * 0.008, a * (0.7 + 0.3 * (q[2] + 1.6) / 3.2), q[2] > 0.8));
+  }
+  function spiral(c, tt) {
+    const N = 55, A = c.globalAlpha, Q = [];
+    for (let k = 0; k < N; k++) { const an = k * 2.39996 + tt * 0.05, r = 0.95 * Math.sqrt((k + 0.5) / N); Q.push([Math.cos(an) * r, Math.sin(an) * r]); }
+    c.save(); c.shadowBlur = 0; c.lineWidth = 0.005; c.globalAlpha = A * 0.4; c.beginPath();
+    for (let k = 0; k < N; k++) for (const o of [13]) if (k + o < N) { c.moveTo(Q[k][0], Q[k][1]); c.lineTo(Q[k + o][0], Q[k + o][1]); }
+    c.stroke(); c.restore();
+    Q.forEach((q, k) => starDot(c, q[0], q[1], 0.012 + 0.02 * (1 - k / N), A * (0.65 + 0.35 * Math.sin(tt * 1.4 + k)), k % 13 === 0));
+  }
+  // 絵のまわりの幾何学模様：破線の輪ひとつと、ゆっくり回る多角形ひとつだけ
+  function decor(c, i, tt) {
+    const A = c.globalAlpha;
+    c.save(); c.shadowBlur = 0; c.lineWidth = 0.004;
+    c.globalAlpha = A * 0.4; c.setLineDash([0.03, 0.05]); c.lineDashOffset = -tt * 0.03;
+    c.beginPath(); c.arc(0, 0, 1.02, 0, TAU); c.stroke(); c.setLineDash([]);
+    const n = 3 + (i % 4), rot = tt * 0.03 + i;
+    c.globalAlpha = A * 0.22; c.beginPath();
+    for (let k = 0; k <= n; k++) { const a = rot + k / n * TAU, x = Math.cos(a) * 0.88, y = Math.sin(a) * 0.88; if (k) c.lineTo(x, y); else c.moveTo(x, y); }
+    c.stroke(); c.restore();
+  }
+  function drawSil(i, alpha, S, tt) {
+    const c = pctx;
+    c.save(); c.globalAlpha = alpha; c.fillStyle = '#fff'; c.strokeStyle = '#fff'; c.lineCap = 'round'; c.lineJoin = 'round';
+    drawStars(c, i === 0 ? alpha / 0.55 : alpha * 0.3, tt, i !== 0);          // どの景色にも、ひろがる星空と星座線
+    c.globalAlpha = alpha; c.translate(W / 2, H / 2 + (i ? Math.sin(tt * 0.7) * S * 0.012 : 0)); c.scale(S, S);
+    decor(c, i, tt);
+    if (i >= 1 && i <= 6) conste(c, i, tt);
+    else if (i === 7) ico(c, 0.8, tt * 0.25, 0.5 + Math.sin(tt * 0.2) * 0.2, alpha);
+    else if (i === 8) spiral(c, tt);
+    c.restore();
+  }
+  function drawKokukei(now) {
+    const c = pctx, tt = now / 1000;
+    c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
+    c.fillStyle = '#000'; c.fillRect(0, 0, W, H);
+    const p = mod(kRot / (TAU * TURNS), KN);
+    const a = Math.floor(p), f = p - a, b = (a + 1) % KN;
+    const s = smooth(0.3, 0.7, f);
+    const stg = Math.floor(p + 0.5) % KN;
+    if (stg !== kStage) kStage = stg;
+    const S = Math.min(W, H) * 0.46;
+    if (1 - s > 0.01) drawSil(a, (1 - s) * 0.75, S, tt);
+    if (s > 0.01) drawSil(b, s * 0.75, S, tt);
+    // 文字盤のない白い時計
+    const cx = W / 2, cy = H / 2, R = Math.min(W, H) * 0.11;
+    c.save();
+    c.fillStyle = 'rgba(0,0,0,.3)'; c.beginPath(); c.arc(cx, cy, R, 0, TAU); c.fill();
+    c.strokeStyle = '#fff'; c.fillStyle = '#fff'; c.lineCap = 'round';
+    c.shadowColor = 'rgba(255,255,255,.7)'; c.shadowBlur = 14;
+    c.lineWidth = 2.2; c.beginPath(); c.arc(cx, cy, R, 0, TAU); c.stroke();
+    const am = kRot - Math.PI / 2, ah = kRot / 12 - Math.PI / 2;
+    c.lineWidth = 3; c.beginPath(); c.moveTo(cx, cy); c.lineTo(cx + Math.cos(am) * R * 0.86, cy + Math.sin(am) * R * 0.86); c.stroke();
+    c.lineWidth = 5; c.beginPath(); c.moveTo(cx, cy); c.lineTo(cx + Math.cos(ah) * R * 0.55, cy + Math.sin(ah) * R * 0.55); c.stroke();
+    c.beginPath(); c.arc(cx, cy, 5, 0, TAU); c.fill();
+    c.restore();
+    drawSparks(c);
+  }
+
+  function updatePlay(dt) { pT += dt; if (pkind === 'raika') updateRaika(dt); else updateKokukei(dt); }
+  function drawPlay(now) { if (pkind === 'raika') drawRaika(now); else drawKokukei(now); }
+
+  /* ---- プレイ画面の入力 ---- */
+  function playDown(e) {
+    const now = performance.now(), x = e.clientX, y = e.clientY;
+    if (mode === 'kokukei') {
+      kOmega = 0;
+      pl.set(e.pointerId, { ang: Math.atan2(y - H / 2, x - W / 2), t: now, x, y, hx: x, hy: y, hold: 0, acc: 0 });
+      sparkBurst(x, y, 18, 280);
+      return;
+    }
+    const r = { sx: x, sy: y, px: x, py: y, lt: now, hold: 0, beat: 0.7, hx: x, hy: y, flame: null, isNew: false, swipe: false, dbl: false };
+    pl.set(e.pointerId, r);
+    if (lastDown && now - lastDown.t < 350 && Math.hypot(x - lastDown.x, y - lastDown.y) < 50) {
+      r.dbl = true; lastDown = null;               // ダブルタッチ → 近くの炎がふわっと消える
+      for (const f of flames) if (!f.dying && Math.hypot(f.x - x, f.y - y) < 95) f.dying = true;
+      taiko(0.22, 44, true);
+      return;
+    }
+    lastDown = { t: now, x, y };
+    let near = null, nd = 46;
+    for (const f of flames) {
+      const d = Math.hypot(f.x - x, f.y - y);
+      if (!f.dying && d < nd) { near = f; nd = d; }
+    }
+    if (near) { r.flame = near; near.power = Math.min(3, near.power + 0.25); }
+    else { r.flame = makeFlame(x, y); r.isNew = true; }
+    drumHit(x, y, 0.5);
+  }
+  function playMove(e) {
+    const r = pl.get(e.pointerId);
+    if (!r) return;
+    const x = e.clientX, y = e.clientY, now = performance.now();
+    if (mode === 'kokukei') {
+      {                                              // 指のあとを火花がついてくる
+        const mx = x - r.x, my = y - r.y, dd = Math.hypot(mx, my);
+        if (dd > 0.5) {
+          const n = Math.min(14, Math.ceil(dd / 5)), ba = Math.atan2(-my, -mx);
+          for (let i = 0; i < n; i++) { const f = (i + 1) / n; spark(r.x + mx * f, r.y + my * f, ba, 0.9, 80 + dd * 5 + Math.random() * 120); }
+        }
+        r.x = x; r.y = y;
+        if (Math.hypot(x - r.hx, y - r.hy) > 14) { r.hold = 0; r.hx = x; r.hy = y; }
+      }
+      const ang = Math.atan2(y - H / 2, x - W / 2);
+      const near = Math.hypot(x - W / 2, y - H / 2) < 24;
+      let d = ang - r.ang;
+      while (d > Math.PI) d -= TAU;
+      while (d < -Math.PI) d += TAU;
+      const dt = Math.max(0.008, (now - r.t) / 1000);
+      r.ang = ang; r.t = now;
+      kRad = Math.hypot(x - W / 2, y - H / 2);
+      if (near) return;
+      kOmega = clamp(kOmega * 0.6 + (d / dt) * 0.4, -10, 10);
+      applyRot(d);
+      return;
+    }
+    if (r.dbl) return;
+    if (!r.swipe && Math.hypot(x - r.sx, y - r.sy) > 26) {
+      r.swipe = true; lastDown = null;             // スワイプ → 雷（直前に灯った炎は取り消す）
+      if (r.isNew && r.flame) { const i = flames.indexOf(r.flame); if (i >= 0) flames.splice(i, 1); }
+      r.flame = null;
+    }
+    if (r.swipe) {
+      const d = Math.hypot(x - r.px, y - r.py);
+      if (d >= 56 && now - r.lt >= 70) {
+        const dx = (x - r.px) / d, dy = (y - r.py) / d;
+        const sp = d / Math.max(16, now - r.lt) * 1000;
+        const ext = clamp(sp * 0.12, 60, 220);
+        spawnBolt(r.px, r.py, x + dx * ext, y + dy * ext, 1 + clamp(sp / 2500, 0, 0.8));
+        guitar(rockFreq(clamp(Math.floor((1 - y / H) * 11), 0, 10)), clamp(0.35 + sp * 0.0002, 0.35, 0.65));   // 上ほど高い音
+        r.px = x; r.py = y; r.lt = now;
+      }
+    }
+  }
+  function playUp(e) {
+    const r = pl.get(e.pointerId);
+    pl.delete(e.pointerId);
+    if (r && mode === 'kokukei') sparkBurst(r.x, r.y, 6 + Math.min(20, r.hold * 10) | 0, 200);
+    // 残心：長く押さえていたあとは、ひと呼吸おいて締めの一打、さらに遠い余韻の一打
+    if (r && mode === 'raika' && r.flame && !r.swipe && !r.dbl && r.hold >= 0.9 && e.type === 'pointerup') {
+      r.flame.linger = true;
+      const v = clamp(0.32 + r.hold * 0.05, 0.32, 0.62), x = r.hx, y = r.hy;
+      setTimeout(() => { if (mode === 'raika') drumHit(x, y, v, false); }, 140);
+      setTimeout(() => { if (mode === 'raika') drumHit(x, y, v * 0.34, false); }, 1150);
+    }
+  }
+
+  /* =====================================================
+     ループ
+  ===================================================== */
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000 || 0.016);
+    last = now;
+    if (riverOn) { update(dt, now); draw(); }
+    if (orbitOn) { updateOrbit(dt); drawOrbit(); }
+    if (playOn) { updatePlay(dt); drawPlay(now); }
+    requestAnimationFrame(frame);
+  }
+
+  initOrbit();
+  resize();
+  requestAnimationFrame(frame);
+
+  /* =====================================================
+     タイトル画面（▷Start / ▷How to Use / ▷Contact）
+  ===================================================== */
+  const titleEl = $('title');
+  const views = { home: $('vHome'), how: $('vHow'), contact: $('vContact') };
+
+  function showView(name) {
+    Object.keys(views).forEach(k => views[k].classList.toggle('on', k === name));
+    if (name !== 'home') views[name].scrollTop = 0;
+  }
+
+  let hideTimer = 0;
+  function startPlay() {
+    document.body.classList.remove('titling');
+    titleEl.classList.add('out');
+    clearTimeout(hideTimer);
+    hideTimer = setTimeout(() => { titleEl.style.display = 'none'; }, 950);
+    // 始まりの2音（清流のハープ）
+    tone(noteFreq(12), 0.28, 'harp');
+    tone(noteFreq(17), 0.24, 'harp', 0.13);
+    // 初回だけ、Start のあとに操作ガイドを出す
+    let seen = false;
+    try { seen = !!localStorage.getItem(SEEN_KEY); } catch (_) {}
+    if (!seen) setTimeout(openGuide, 1100);
+  }
+
+  // プレイ画面 → タイトル（↩）
+  function backToTitle() {
+    ensureAudio();
+    setMenu(false);
+    if (guide.classList.contains('show')) closeGuide();
+    pointers.clear(); pl.clear();
+    clearTimeout(hideTimer);
+    showView('home');
+    document.body.classList.add('titling');
+    titleEl.style.display = '';
+    void titleEl.offsetWidth;            // 非表示から戻すとき、フェードが効くように
+    titleEl.classList.remove('out');
+  }
+  $('back').addEventListener('click', backToTitle);
+
+  titleEl.addEventListener('click', e => {
+    const b = e.target.closest('button[data-go]');
+    if (!b) return;
+    ensureAudio();                       // ボタンのタップは、音を始める最初の操作になる
+    const go = b.dataset.go;
+    if (go === 'start') startPlay(); else showView(go);
+  });
+})();
+</script>
+</body>
+</html>
