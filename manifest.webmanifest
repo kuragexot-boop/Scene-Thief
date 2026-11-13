@@ -1,7 +1,7 @@
 {
   "name": "シーン・シーフ Scene Thief",
   "short_name": "Scene Thief",
-  "description": "通りすぎる景色を、指先で、そっと盗む。",
+  "description": "情景が、そっと奪われる。",
   "lang": "ja",
   "start_url": "./",
   "scope": "./",
