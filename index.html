@@ -1797,6 +1797,7 @@
   const HAPTIC = true;                              // false にすると振動を切れます
   const HAPTIC_GAIN = 2.2, HAPTIC_MIN = 24;         // Android 用：短すぎる振動は感じにくいので、長さを底上げする（弱めたいときは GAIN を下げる）
   let hapLast = 0;
+  const hapStat = { calls: 0, last: '-' };          // 診断パネル用：呼び出し回数と、直近の vibrate の戻り値
   const hapEl = (() => {
     const l = document.createElement('label');
     l.setAttribute('aria-hidden', 'true');
@@ -1813,14 +1814,16 @@
     try {
       if (navigator.vibrate) {
         const g = v => Math.max(HAPTIC_MIN, Math.round(v * HAPTIC_GAIN));
-        navigator.vibrate(Array.isArray(p) ? p.map((v, i) => (i % 2 === 0 ? g(v) : v)) : g(p));
+        const ok = navigator.vibrate(Array.isArray(p) ? p.map((v, i) => (i % 2 === 0 ? g(v) : v)) : g(p));
+        hapStat.calls++; hapStat.last = String(ok);
         return;
       }
+      hapStat.calls++; hapStat.last = 'switch';
       const seq = Array.isArray(p) ? p : [p];
       hapEl.click();
       let t = 0;
       seq.forEach((d, i) => { if (i > 0 && i % 2 === 0) setTimeout(() => hapEl.click(), t); t += d; });
-    } catch (_) {}
+    } catch (e) { hapStat.last = 'error: ' + (e && e.message); }
   }
   let flash = 0, lastDown = null, sprite = null;
   (function makeSprite() {
@@ -2373,6 +2376,60 @@
     const go = b.dataset.go;
     if (go === 'start') startPlay(); else showView(go);
   });
+
+  /* ---- 振動の診断パネル：タイトルの「そっと奪われる。」を、すばやく5回ふれると出入りします ---- */
+  (function () {
+    const BUILD = 'haptic-4';
+    let hud = null, timer = 0, taps = [];
+    function report() {
+      const ua = navigator.userAgent;
+      const inApp = /FBAN|FBAV|Instagram|Line\/|Twitter|MicroMessenger|; wv\)/i.test(ua);
+      const act = navigator.userActivation ? (navigator.userActivation.hasBeenActive ? 'あり' : 'なし') : '不明';
+      return [
+        'build: ' + BUILD,
+        'vibrate機能: ' + ('vibrate' in navigator ? 'あり' : 'なし'),
+        'ホーム画面アプリ: ' + (matchMedia('(display-mode: standalone)').matches ? 'はい' : 'いいえ'),
+        'アプリ内ブラウザ: ' + (inApp ? 'はい' : 'いいえ'),
+        '操作履歴: ' + act,
+        'haptic呼び出し: ' + hapStat.calls + '回',
+        '直近の戻り値: ' + hapStat.last
+      ].join('\n');
+    }
+    function show() {
+      hud = document.createElement('div');
+      hud.style.cssText = 'position:fixed;left:8px;top:calc(env(safe-area-inset-top,0px) + 8px);z-index:99;max-width:86vw;padding:8px 10px;border-radius:8px;background:rgba(0,0,0,.78);color:#cfe8ff;font:11px/1.6 monospace;pointer-events:none';
+      hud.innerHTML = '<div class="hv" style="white-space:pre"></div><div class="hr" style="margin:4px 0;color:#ffd98a"></div>';
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;gap:6px;pointer-events:auto';
+      const out = hud.querySelector('.hr');
+      [['テスト 200ms', 200], ['テスト パターン', [120, 60, 120, 60, 240]]].forEach(([label, pat]) => {
+        const b = document.createElement('button');
+        b.textContent = label;
+        b.style.cssText = 'font:11px monospace;padding:4px 8px;border-radius:6px;border:1px solid #6a8;background:#123;color:#cfe8ff';
+        b.addEventListener('click', e => {
+          e.stopPropagation();
+          out.textContent = 'test → ' + (navigator.vibrate ? navigator.vibrate(pat) : 'vibrate機能なし');
+        });
+        row.appendChild(b);
+      });
+      const x = document.createElement('button');
+      x.textContent = '閉じる';
+      x.style.cssText = 'font:11px monospace;padding:4px 8px;border-radius:6px;border:1px solid #888;background:#222;color:#ccc';
+      x.addEventListener('click', e => { e.stopPropagation(); hide(); });
+      row.appendChild(x);
+      hud.appendChild(row);
+      document.body.appendChild(hud);
+      const upd = () => { hud.querySelector('.hv').textContent = report(); };
+      upd(); timer = setInterval(upd, 400);
+    }
+    function hide() { clearInterval(timer); if (hud) hud.remove(); hud = null; }
+    titleEl.addEventListener('click', e => {
+      if (!e.target.closest('.logo .tag')) return;
+      const now = performance.now();
+      taps = taps.filter(t => now - t < 2500); taps.push(now);
+      if (taps.length >= 5) { taps = []; if (hud) hide(); else show(); }
+    });
+  })();
 })();
 </script>
 </body>
