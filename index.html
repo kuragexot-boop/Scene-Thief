@@ -205,6 +205,7 @@
   #btxt b { display: block; margin-bottom: 4px; letter-spacing: .2em; font-weight: 500; color: #fff; }
   .bfoot { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
   #dots { font-size: 9px; letter-spacing: .5em; color: rgba(170, 200, 250, .6); }
+  #dots .pg { font-size: 11px; letter-spacing: .12em; color: rgba(200, 220, 255, .9); margin-right: 10px; }
   #bnext {
     padding: 7px 18px;
     border-radius: 999px;
@@ -417,7 +418,7 @@
           <h3>使い方</h3>
 
           <section class="scn">
-            <h4>♺ 景色をうつる</h4>
+            <h4>♺ 移ろう情景</h4>
             <p class="lead">下の「♺」から、四つの景色へ。<br>清流、天図、雷火、刻景。</p>
           </section>
 
@@ -427,33 +428,30 @@
             <ul>
               <li><b>ふれる</b> … 指先が岩になり、光は身をかわして流れます。放せば、もとの流れへ。</li>
               <li><b>くるくるなぞる</b> … 光が渦に巻き取られます。放すと解き放たれ、また流れ出します。</li>
-              <li><b>タップ</b> … 水面に波紋が広がり、通りすぎた光の色がゆるやかにかわります。</li>
+              <li><b>ひとしずく落とす</b> … 水面に波紋が広がり、通りすぎた光の色がゆるやかにかわります。</li>
             </ul>
-            <p class="snd">♪ 弦をはじくような、澄んだ音。高いところに触れるほど高く、なぞるほど、爪弾くように連なります。</p>
           </section>
 
           <section class="scn">
             <h4>▷天図</h4>
             <p class="lead">星空に浮かぶ、惑星の軌道図。<br>そこへ、あなたの星をひとつ灯してみる。</p>
             <ul>
-              <li><b>タップ</b> … 軌道図に星が灯ります。星は図とともに回り、惑星のように太陽のまわりをめぐります。</li>
-              <li><b>灯した星をもう一度タップ</b> … 星は静かに消えます。</li>
-              <li><b>スワイプ</b> … 軌道図を、どの向きにも回せます。速く、同じ向きに重ねるほど、回転は速まります。</li>
-              <li><b>ふれる</b> … 回転が止まります。スワイプをやめると、ゆっくり減速して止まります。</li>
+              <li><b>ふれて灯す</b> … 軌道図に星が灯ります。星は図とともに回り、惑星のように太陽のまわりをめぐります。</li>
+              <li><b>灯した星に、もう一度ふれる</b> … 星は静かに消えます。</li>
+              <li><b>指をすべらせる</b> … 軌道図を、どの向きにも回せます。速く、同じ向きに重ねるほど、回転は速まります。</li>
+              <li><b>指でとめる</b> … 回転が止まります。すべらせるのをやめると、ゆっくり減速して止まります。</li>
             </ul>
-            <p class="snd">♪ 鍵を打つような、深くやわらかな響き。回した分だけ音が生まれ、減速とともに間遠くなります。内側の星ほど、高く鳴ります。</p>
           </section>
 
           <section class="scn">
             <h4>▷雷火</h4>
             <p class="lead">黒い闇に、白い雷と炎。<br>走るものと、灯るもの。</p>
             <ul>
-              <li><b>スワイプ</b> … 指の進む先へ、雷が走ります。速いほど、長く太い雷に。</li>
-              <li><b>タッチ</b> … 炎が灯ります。</li>
-              <li><b>長押し</b> … 炎が勢いを増し、打音がゆっくり溜めをつくります。しばらく押して放すと、ひと呼吸おいて締めの一打。炎は静かに、もとの大きさへ戻ります。</li>
-              <li><b>ダブルタッチ</b> … 近くの炎が、ふわりと消えます。</li>
+              <li><b>指をすべらせる</b> … 指の進む先へ、雷が走ります。速いほど、長く太い雷に。</li>
+              <li><b>ふれる</b> … 炎が、ほとばしるように灯ります。</li>
+              <li><b>ふれつづける</b> … 炎が勢いを増します。そのままでいると、まわりへ飛び火して燃え広がります。放すと、広がった炎は順に静まり、もとの炎も静かに、もとの大きさへ戻ります。</li>
+              <li><b>すばやく、ふた度ふれる</b> … 近くの炎が、ふわりと消えます。</li>
             </ul>
-            <p class="snd">♪ 雷には、歪んだ力強い弦の響き。画面の上でなぞるほど高く。炎には、低く腹にひびく打音。左右で音階が変わります。</p>
           </section>
 
           <section class="scn">
@@ -463,16 +461,6 @@
               <li><b>針を時計回りになぞりつづける</b> … 針が四分の三ほどめぐるたび、景色はひとつ先へ。星空から、春夏秋冬の星座をたどり、幾何学のかたちをした未来の星座へ。最後は、また星空に還ります。</li>
               <li><b>反時計回りになぞる</b> … 同じ道を、過去へさかのぼります。</li>
               <li><b>放したあと</b> … 針は、少し余韻で回ります。</li>
-            </ul>
-            <p class="snd">♪ 時計回りは、澄んだ金属の粒のような音。反時計回りは、ぴんと張った弦をはじく音。針の向きで音階が変わり、中心から遠くをなぞるほど、高く澄みます。</p>
-          </section>
-
-          <section class="scn">
-            <h4>音</h4>
-            <p class="lead">音は、触れた瞬間に、その場で生まれます。<br>どの音が重なっても濁らない音階なので、気のむくまま、鳴らしてください。</p>
-            <ul>
-              <li>最初にふれるまで、音は眠っています。iPhone はマナーモードだと鳴りません。</li>
-              <li>左下の「♪」でオン／オフ、となりのつまみで音量を。</li>
             </ul>
           </section>
 
@@ -1549,10 +1537,11 @@
   const guide = $('guide'), btxt = $('btxt'), bnext = $('bnext'), dots = $('dots'), help = $('help');
   const SEEN_KEY = 'seiryu.guide.v1';
   const STEPS = [
-    { t: '<b>▷清流</b>ふれた指が岩になり、光は身をかわして流れます。<br>なぞれば渦に、タップすれば波紋に。<br>弦をはじくような澄んだ音が、寄りそいます。', b: 'NEXT →' },
-    { t: '<b>景色をうつる</b>下の「♺」から、四つの景色へ。<br>清流、天図、雷火、刻景。<br>気のむくまま、盗みにゆくように。', b: 'NEXT →' },
-    { t: '<b>▷天図</b>タップで星が灯り、もう一度ふれると、静かに消えます。<br>スワイプで星図がめぐり、回すほど軌道は速まります。<br>鍵を打つような深い響きが、宙にのこります。', b: 'NEXT →' },
-    { t: '<b>▷雷火</b>なぞれば雷が走り、ふれれば炎が灯ります。<br>押さえつづけて、放したあとの余韻まで。<br><b>▷刻景</b>針をめぐらせば、背景が時をわたります。', b: 'START' }
+    { t: '<b>移ろう情景</b>下の「♺」から、四つの景色へ。<br>清流、天図、雷火、刻景。<br>あなたの指先で、情景を奪うように。', b: 'NEXT →' },
+    { t: '<b>▷清流</b>ふれた指が岩になり、光は身をかわして流れます。<br>なぞれば渦に、ひとしずく落とせば波紋に。', b: 'NEXT →' },
+    { t: '<b>▷天図</b>ふれたところに星が灯り、もう一度ふれると、静かに消えます。<br>指をすべらせれば星図がめぐり、めぐらせるほど軌道は速まります。', b: 'NEXT →' },
+    { t: '<b>▷雷火</b>なぞれば雷が走り、ふれれば炎が灯ります。<br>押さえつづければ、炎は燃え広がります。', b: 'NEXT →' },
+    { t: '<b>▷刻景</b>文字盤のない、白い時計。<br>針をなぞると、星座と幾何学の背景が、過去から未来へ時をわたります。<br>春夏秋冬の星座をたどり、星座は過去から未来へ。<br>反時計回りなら、過去へさかのぼります。', b: 'START' }
   ];
   let gi = 0, guideTimer = 0;
 
@@ -1560,7 +1549,7 @@
     const apply = () => {
       btxt.innerHTML = STEPS[gi].t;
       bnext.textContent = STEPS[gi].b;
-      dots.textContent = STEPS.map((_, i) => (i === gi ? '●' : '○')).join(' ');
+      dots.innerHTML = '<span class="pg">' + (gi + 1) + '/' + STEPS.length + '</span>' + STEPS.map((_, i) => (i === gi ? '●' : '○')).join(' ');
       btxt.classList.remove('swap');
     };
     if (first) { apply(); return; }
@@ -1802,6 +1791,32 @@
 
   /* ---------------- 雷火 ---------------- */
   const flames = [], fp = [], bolts = [];
+  const FLAME_MAX = 24, KID_MAX = 14, FP_MAX = 1000, SPREAD_AFTER = 0.6;   // 炎の数・飛び火の数・粒の数の上限／燃え広がりはじめる長押し秒数
+
+  /* ---- 触覚（バイブ）：Android は vibrate、iPhone(Safari 17.4〜) は switch の切り替えで触覚を出す ---- */
+  const HAPTIC = true;                              // false にすると振動を切れます
+  let hapLast = 0;
+  const hapEl = (() => {
+    const l = document.createElement('label');
+    l.setAttribute('aria-hidden', 'true');
+    l.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0;pointer-events:none';
+    l.innerHTML = '<input type="checkbox" switch tabindex="-1">';
+    document.body.appendChild(l);
+    return l;
+  })();
+  function haptic(p) {
+    if (!HAPTIC) return;
+    const now = performance.now();
+    if (now - hapLast < 30) return;
+    hapLast = now;
+    try {
+      if (navigator.vibrate) { navigator.vibrate(p); return; }
+      const seq = Array.isArray(p) ? p : [p];
+      hapEl.click();
+      let t = 0;
+      seq.forEach((d, i) => { if (i > 0 && i % 2 === 0) setTimeout(() => hapEl.click(), t); t += d; });
+    } catch (_) {}
+  }
   let flash = 0, lastDown = null, sprite = null;
   (function makeSprite() {
     const c = document.createElement('canvas'); c.width = c.height = 64;
@@ -1815,29 +1830,67 @@
   })();
 
   function makeFlame(x, y) {
-    if (flames.length >= 10) { const o = flames.find(f => !f.dying); if (o) o.dying = true; }
+    if (flames.length >= FLAME_MAX) { const o = flames.find(f => !f.dying); if (o) o.dying = true; }
     const f = { x, y, power: 1, fade: 1, dying: false, em: 0, age: 0, ph: rand(0, TAU), held: false };
     flames.push(f);
     return f;
   }
   function spawnFire(f) {
-    if (fp.length > 700) return;
-    const pw = f.power, soft = f.dying ? 0.55 : 1;
+    if (fp.length > FP_MAX) return;
+    const pw = f.power, soft = f.dying ? 0.55 : 1, sc = f.kid ? 0.8 : 1;
+    if (!f.dying && Math.random() < 0.22 + 0.08 * pw) {      // 勢いよく噴き上がる細い筋
+      fp.push({
+        x: f.x + rand(-5, 5), y: f.y + rand(-3, 3),
+        vx: rand(-45, 45) * (0.7 + 0.3 * pw) * sc, vy: -rand(190, 330) * (0.7 + 0.4 * pw) * sc,
+        age: 0, life: rand(0.3, 0.6), size: rand(6, 10) * sc, ph: rand(0, TAU), ember: false, spurt: true
+      });
+      return;
+    }
     fp.push({
-      x: f.x + rand(-7, 7), y: f.y + rand(-3, 3),
-      vx: rand(-16, 16), vy: -rand(70, 125) * (0.7 + 0.45 * pw) * soft,
+      x: f.x + rand(-8, 8), y: f.y + rand(-3, 3),
+      vx: rand(-26, 26) * (0.8 + 0.5 * pw) * sc, vy: -rand(70, 125) * (0.7 + 0.45 * pw) * soft * sc,
       age: 0, life: rand(0.5, 0.95) * (0.8 + 0.18 * pw),
-      size: rand(10, 17) * (0.75 + 0.3 * pw) * (f.dying ? 1.15 : 1),
+      size: rand(11, 19) * (0.75 + 0.3 * pw) * (f.dying ? 1.15 : 1) * sc,
       ph: rand(0, TAU), ember: false
     });
   }
-  function spawnEmber(f) {
-    if (fp.length > 700) return;
+  function spawnEmber(f) {                                    // 火の粉：弧を描いて散る
+    if (fp.length > FP_MAX) return;
     fp.push({
       x: f.x + rand(-10, 10), y: f.y - rand(0, 20),
-      vx: rand(-40, 40), vy: -rand(140, 240),
+      vx: rand(-90, 90), vy: -rand(200, 400),
       age: 0, life: rand(1, 1.7), size: rand(2.5, 4.5), ph: rand(0, TAU), ember: true
     });
+  }
+  function igniteBurst(f, n) {                                // 灯った瞬間に、扇状にほとばしる
+    for (let i = 0; i < n; i++) {
+      if (fp.length > FP_MAX) break;
+      const a = -Math.PI / 2 + rand(-0.75, 0.75), v = rand(160, 340);
+      fp.push({
+        x: f.x + rand(-4, 4), y: f.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v,
+        age: 0, life: rand(0.35, 0.7), size: rand(5, 9), ph: rand(0, TAU), ember: false, spurt: true
+      });
+    }
+    for (let i = 0; i < 3; i++) spawnEmber(f);
+  }
+  function spreadFlame(r) {                                   // 長押し：まわりへ飛び火して、燃え広がる
+    if (flames.length >= FLAME_MAX || r.kids.length >= KID_MAX) return;
+    const reach = clamp(40 + (r.hold - SPREAD_AFTER) * 55, 40, Math.min(W, H) * 0.42);
+    const alive = r.kids.filter(k => !k.dying);
+    const src = alive.length && Math.random() < 0.6 ? alive[(Math.random() * alive.length) | 0] : r.flame;
+    for (let i = 0; i < 8; i++) {
+      const a = rand(0, TAU), d = rand(34, 70);
+      const x = src.x + Math.cos(a) * d, y = src.y + Math.sin(a) * d * 0.7;
+      if (x < 12 || x > W - 12 || y < 12 || y > H - 12) continue;
+      if (Math.hypot(x - r.hx, y - r.hy) > reach) continue;
+      if (flames.some(f => !f.dying && Math.hypot(f.x - x, f.y - y) < 30)) continue;
+      const k = makeFlame(x, y);
+      k.kid = true; k.power = rand(0.8, 1.15);
+      r.kids.push(k);
+      igniteBurst(k, 5);
+      haptic(18);
+      return;
+    }
   }
 
   function jag(x0, y0, x1, y1, rough) {            // 中点変位で稲妻のギザギザを作る
@@ -1877,30 +1930,41 @@
     for (const r of pl.values()) {
       if (r.dbl || r.swipe || !r.flame) continue;
       r.flame.held = true; r.hold += dt; r.beat -= dt;
+      if (r.hold > SPREAD_AFTER) {                 // 燃え広がり：押すほど間隔が詰まる
+        r.spread -= dt;
+        if (r.spread <= 0) {
+          r.spread = Math.max(0.16, 0.5 - (r.hold - SPREAD_AFTER) * 0.1);
+          spreadFlame(r);
+        }
+      }
       if (r.beat <= 0) {                           // 長押しの間、太鼓がロールのように連打される
         // 溜め：最初はゆったり、ゆっくりと詰まっていく。人の手で打てる速さ（約9打/秒）を上限にする
         r.beat = 0.12 + 0.58 * Math.exp(-r.hold / 2.6);
         drumHit(r.hx, r.hy, 0.2 + 0.36 * (1 - Math.exp(-r.hold / 3)), true);   // 音もじわりと育つ
+        haptic(Math.round(8 + 10 * (1 - Math.exp(-r.hold / 3))));               // 震えも、打音に合わせて育つ
       }
     }
     for (let i = flames.length - 1; i >= 0; i--) {
       const f = flames[i];
       f.age += dt;
+      if (f.ttl !== undefined && !f.dying) { f.ttl -= dt; if (f.ttl <= 0) f.dying = true; }   // 飛び火した炎は、放したあと順に消えていく
       if (f.dying) f.fade -= dt / 1.6;
       else if (f.held) { f.power = Math.min(3, f.power + 0.8 * dt); f.linger = false; }
       else f.power += (1 - f.power) * (1 - Math.exp(-(f.linger ? 0.3 : 0.6) * dt));   // 残心：長押しのあとは、よりゆっくり静まる
       if (f.fade <= 0) { flames.splice(i, 1); continue; }
       const k = Math.min(1, f.age / 0.25) * f.fade;
-      f.em += (45 + 70 * f.power) * k * dt;
+      f.em += (55 + 85 * f.power) * (f.kid ? 0.6 : 1) * k * dt;
       let guard = 8;
       while (f.em >= 1 && guard-- > 0) { f.em -= 1; spawnFire(f); }
-      if (!f.dying && f.power > 1.7 && Math.random() < dt * (f.power - 1.4) * 5) spawnEmber(f);
+      if (!f.dying && f.power > 1.1 && Math.random() < dt * (f.power - 0.8) * 4.5) spawnEmber(f);
     }
     for (let i = fp.length - 1; i >= 0; i--) {
       const p = fp[i];
       p.age += dt;
       if (p.age >= p.life) { fp[i] = fp[fp.length - 1]; fp.pop(); continue; }
       p.vx += Math.sin(pT * 7 + p.ph) * 50 * dt * (p.ember ? 0.2 : 1);
+      if (p.spurt) { p.vx *= 1 - 1.2 * dt; p.vy *= 1 - 1.6 * dt; }   // 噴き上がって、ふっと勢いが抜ける
+      else if (p.ember) p.vy += 340 * dt;                              // 火の粉は弧を描いて落ちる
       p.x += p.vx * dt; p.y += p.vy * dt;
     }
     for (let i = bolts.length - 1; i >= 0; i--) {
@@ -1923,7 +1987,7 @@
     c.globalCompositeOperation = 'lighter';
     if (flash > 0.01) { c.fillStyle = 'rgba(255,255,255,' + (flash * 0.16).toFixed(3) + ')'; c.fillRect(0, 0, W, H); }
     for (const f of flames) {                      // 炎の根元の光
-      const r = (24 + 20 * f.power) * (0.92 + 0.08 * Math.sin(now * 0.03 + f.ph));
+      const r = (28 + 24 * f.power) * (0.92 + 0.08 * Math.sin(now * 0.03 + f.ph));
       c.globalAlpha = 0.6 * Math.min(1, f.age / 0.25) * f.fade;
       c.drawImage(sprite, f.x - r, f.y - r * 1.1, r * 2, r * 2);
     }
@@ -1932,6 +1996,11 @@
       c.globalAlpha = p.ember ? (1 - k) * 0.9 : Math.pow(1 - k, 1.3) * 0.5;
       const s = p.ember ? p.size : p.size * (0.4 + 0.6 * (1 - k));
       c.drawImage(sprite, p.x - s, p.y - s, s * 2, s * 2);
+      if (p.spurt) {                               // 噴き上がる筋は、うしろに細い尾をひく
+        const tx = p.x - p.vx * 0.035, ty = p.y - p.vy * 0.035, s2 = s * 0.7;
+        c.globalAlpha *= 0.7;
+        c.drawImage(sprite, tx - s2, ty - s2, s2 * 2, s2 * 2);
+      }
     }
     c.strokeStyle = '#fff'; c.lineCap = 'round'; c.lineJoin = 'round';
     for (const b of bolts) {
@@ -2153,12 +2222,13 @@
       sparkBurst(x, y, 18, 280);
       return;
     }
-    const r = { sx: x, sy: y, px: x, py: y, lt: now, hold: 0, beat: 0.7, hx: x, hy: y, flame: null, isNew: false, swipe: false, dbl: false };
+    const r = { sx: x, sy: y, px: x, py: y, lt: now, hold: 0, beat: 0.7, hx: x, hy: y, flame: null, isNew: false, swipe: false, dbl: false, spread: 0, kids: [] };
     pl.set(e.pointerId, r);
     if (lastDown && now - lastDown.t < 350 && Math.hypot(x - lastDown.x, y - lastDown.y) < 50) {
       r.dbl = true; lastDown = null;               // ダブルタッチ → 近くの炎がふわっと消える
       for (const f of flames) if (!f.dying && Math.hypot(f.x - x, f.y - y) < 95) f.dying = true;
       taiko(0.22, 44, true);
+      haptic([8, 40, 8]);
       return;
     }
     lastDown = { t: now, x, y };
@@ -2167,9 +2237,10 @@
       const d = Math.hypot(f.x - x, f.y - y);
       if (!f.dying && d < nd) { near = f; nd = d; }
     }
-    if (near) { r.flame = near; near.power = Math.min(3, near.power + 0.25); }
-    else { r.flame = makeFlame(x, y); r.isNew = true; }
+    if (near) { r.flame = near; near.power = Math.min(3, near.power + 0.25); igniteBurst(near, 6); }
+    else { r.flame = makeFlame(x, y); r.isNew = true; igniteBurst(r.flame, 10); }
     drumHit(x, y, 0.5);
+    haptic(r.isNew ? 22 : 14);
   }
   function playMove(e) {
     const r = pl.get(e.pointerId);
@@ -2210,7 +2281,9 @@
         const dx = (x - r.px) / d, dy = (y - r.py) / d;
         const sp = d / Math.max(16, now - r.lt) * 1000;
         const ext = clamp(sp * 0.12, 60, 220);
-        spawnBolt(r.px, r.py, x + dx * ext, y + dy * ext, 1 + clamp(sp / 2500, 0, 0.8));
+        const bw = 1 + clamp(sp / 2500, 0, 0.8);
+        spawnBolt(r.px, r.py, x + dx * ext, y + dy * ext, bw);
+        haptic(Math.round(12 + (bw - 1) * 26));    // 雷が走るたび、速いほど強く
         guitar(rockFreq(clamp(Math.floor((1 - y / H) * 11), 0, 10)), clamp(0.35 + sp * 0.0002, 0.35, 0.65));   // 上ほど高い音
         r.px = x; r.py = y; r.lt = now;
       }
@@ -2219,13 +2292,14 @@
   function playUp(e) {
     const r = pl.get(e.pointerId);
     pl.delete(e.pointerId);
+    if (r && r.kids && r.kids.length) for (const k of r.kids) k.ttl = rand(2.2, 5.5);   // 飛び火した炎は、順に静まる
     if (r && mode === 'kokukei') sparkBurst(r.x, r.y, 6 + Math.min(20, r.hold * 10) | 0, 200);
     // 残心：長く押さえていたあとは、ひと呼吸おいて締めの一打、さらに遠い余韻の一打
     if (r && mode === 'raika' && r.flame && !r.swipe && !r.dbl && r.hold >= 0.9 && e.type === 'pointerup') {
       r.flame.linger = true;
       const v = clamp(0.32 + r.hold * 0.05, 0.32, 0.62), x = r.hx, y = r.hy;
-      setTimeout(() => { if (mode === 'raika') drumHit(x, y, v, false); }, 140);
-      setTimeout(() => { if (mode === 'raika') drumHit(x, y, v * 0.34, false); }, 1150);
+      setTimeout(() => { if (mode === 'raika') { drumHit(x, y, v, false); haptic(Math.round(clamp(24 + r.hold * 3, 24, 40))); } }, 140);
+      setTimeout(() => { if (mode === 'raika') { drumHit(x, y, v * 0.34, false); haptic(10); } }, 1150);
     }
   }
 
